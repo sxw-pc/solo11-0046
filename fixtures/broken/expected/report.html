@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lineage Inquest · line-hello-broken</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --panel: #ffffff; --ink: #1f2933; --muted: #5c6b7a;
+      --line: #d9e0e7; --accent: #145c7a; --error: #a4262c; --warn: #8a5a00;
+      --info: #235c8a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    header { background: #10384a; color: #fff; padding: 24px 32px; }
+    header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 650; }
+    header p { margin: 2px 0; color: #d6e6ee; font-size: 13px; }
+    main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+    section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 18px 20px; margin-bottom: 18px; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    h3 { margin: 18px 0 8px; font-size: 15px; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; background: #fbfcfd; }
+    .metric strong { display: block; font-size: 24px; line-height: 1.1; }
+    .metric span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; background: #f3f6f8; }
+    code { font: 12px/1.4 "Cascadia Mono", Consolas, monospace; word-break: break-word; }
+    .sev { display: inline-block; min-width: 48px; text-align: center; border-radius: 999px;
+      padding: 1px 8px; font-size: 11px; font-weight: 650; text-transform: uppercase; }
+    .sev-error { color: #fff; background: var(--error); }
+    .sev-warn { color: #fff; background: var(--warn); }
+    .sev-info { color: #fff; background: var(--info); }
+    .muted { color: var(--muted); }
+    .empty { color: var(--muted); font-style: italic; }
+    .overridden { border-left: 3px solid var(--accent); padding-left: 10px; }
+    details { margin: 2px 0; }
+    summary { cursor: pointer; color: var(--accent); }
+    ul.plain { margin: 4px 0; padding-left: 20px; }
+    .status-supported { color: #1f6b3c; font-weight: 600; }
+    .status-unsupported { color: var(--error); font-weight: 600; }
+    footer { max-width: 1180px; margin: 0 auto; padding: 0 20px 32px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lineage Inquest</h1>
+    <p>Static SQL lineage and contract inquest · line-hello-broken</p>
+    <p>Run run-3acaed7dd33e · Generated 2024-06-02T00:00:00Z · Input 14ba5bd3727acd1c · Config 5fb7f3df5bd1d380</p>
+  </header>
+  <main>
+<section id="overview"><h2>Overview</h2><div class="metrics">
+<div class="metric"><strong>4</strong><span>Tables</span></div>
+<div class="metric"><strong>14</strong><span>Nodes</span></div>
+<div class="metric"><strong>5</strong><span>Edges</span></div>
+<div class="metric"><strong>11</strong><span>Findings</span></div>
+<div class="metric"><strong>5</strong><span>Unsupported</span></div>
+<div class="metric"><strong>4</strong><span>Scripts</span></div>
+<div class="metric"><strong>12</strong><span>Statements</span></div>
+</div>
+<p class="muted">By severity: error=2, warn=9</p>
+</section>
+<section id="severity"><h2>Severity policy</h2><table><thead><tr>
+<th>Category</th><th>Severity</th><th>Source</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>missing_upstream</code></td><td><span class="sev sev-error">error</span></td><td>built-in default</td><td><span class="sev sev-error">error</span></td></tr>
+<tr><td><code>unexpected_upstream</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+<tr class="overridden"><td><code>type_mismatch</code></td><td><span class="sev sev-warn">warn</span></td><td>config override</td><td><span class="sev sev-error">error</span></td></tr>
+<tr><td><code>assertion_mismatch</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+<tr><td><code>unsupported_sql</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+<tr><td><code>cycle_detected</code></td><td><span class="sev sev-error">error</span></td><td>built-in default</td><td><span class="sev sev-error">error</span></td></tr>
+<tr><td><code>table_redefined</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+</tbody></table></section>
+<section id="findings"><h2>Findings</h2>
+<table><thead><tr><th>Severity</th><th>Category</th><th>Target</th><th>Message</th><th>Location</th></tr></thead><tbody>
+<tr><td><span class="sev sev-error">error</span></td><td><code>cycle_detected</code></td><td><code>mart.ledger_a.id</code></td><td>a cycle was detected in the column lineage graph<details><summary>Explanation</summary><div><code>f-480494a53ae5ddc1</code><br>cycle: mart.ledger_a.id, mart.ledger_b.id</div></details></td><td><code>contract/global</code></td></tr>
+<tr><td><span class="sev sev-error">error</span></td><td><code>missing_upstream</code></td><td><code>mart.revenue.total_amount</code></td><td>1 required upstream column(s) are not direct sources<details><summary>Explanation</summary><div><code>f-233609e49c117955</code><br>missing: raw.orders.gross_amount</div></details></td><td><code>broken.yaml:0</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>assertion_mismatch</code></td><td><code>mart.revenue.day</code></td><td>declared assertions are not present in DDL/static metadata<details><summary>Explanation</summary><div><code>f-0b53e4c46806d783</code><br>missing assertions: not_null</div></details></td><td><code>broken.yaml:0</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>table_redefined</code></td><td><code>raw.orders</code></td><td>table is defined more than once<details><summary>Explanation</summary><div><code>f-102db59fc2b603e1</code><br>redefined at 01_schema.sql:11; previous: 01_schema.sql:2</div></details></td><td><code>01_schema.sql:11</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>type_mismatch</code> <span class=muted>(override)</span></td><td><code>mart.revenue.total_amount</code></td><td>declared type does not match the statically extracted type<details><summary>Explanation</summary><div><code>f-0b5c7f8d4e99cf9c</code><br>expected: numeric; actual: VARCHAR(20)</div></details></td><td><code>broken.yaml:0</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>unexpected_upstream</code></td><td><code>mart.revenue.total_amount</code></td><td>column has upstream sources outside the declared allow-list<details><summary>Explanation</summary><div><code>f-a5ca4c81012c4302</code><br>unexpected: raw.orders.net_amount; forbidden: raw.orders.net_amount</div></details></td><td><code>broken.yaml:0</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>unsupported_sql</code></td><td><code>04_unsupported.sql:10:set_operation</code></td><td>unsupported SQL construct: set_operation<details><summary>Explanation</summary><div><code>f-4f1423ee8af7d835</code><br>UNION/INTERSECT/EXCEPT are not supported</div></details></td><td><code>04_unsupported.sql:10</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>unsupported_sql</code></td><td><code>04_unsupported.sql:17:lateral</code></td><td>unsupported SQL construct: lateral<details><summary>Explanation</summary><div><code>f-e267c70dba967d8f</code><br>LATERAL sources are not supported</div></details></td><td><code>04_unsupported.sql:17</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>unsupported_sql</code></td><td><code>04_unsupported.sql:21:pivot</code></td><td>unsupported SQL construct: pivot<details><summary>Explanation</summary><div><code>f-15acf6d4a06c119a</code><br>PIVOT/UNPIVOT is not supported</div></details></td><td><code>04_unsupported.sql:21</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>unsupported_sql</code></td><td><code>04_unsupported.sql:5:window_function</code></td><td>unsupported SQL construct: window_function<details><summary>Explanation</summary><div><code>f-ed8a0abfa802f806</code><br>window functions (OVER) are outside the supported subset</div></details></td><td><code>04_unsupported.sql:5</code></td></tr>
+<tr><td><span class="sev sev-warn">warn</span></td><td><code>unsupported_sql</code></td><td><code>04_unsupported.sql:8:recursive_cte</code></td><td>unsupported SQL construct: recursive_cte<details><summary>Explanation</summary><div><code>f-d0bf97fc0fb965c5</code><br>recursive common table expressions are not supported</div></details></td><td><code>04_unsupported.sql:8</code></td></tr>
+</tbody></table>
+</section>
+<section id="files"><h2>By script</h2><table><thead><tr>
+<th>Script</th><th>Statements</th><th>Supported</th><th>Unsupported</th><th>Edges</th><th>Findings</th></tr></thead><tbody>
+<tr><td><code>01_schema.sql</code></td><td>5</td><td>5</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td><code>02_revenue.sql</code></td><td>1</td><td>1</td><td>0</td><td>3</td><td>0</td></tr>
+<tr><td><code>03_cycle.sql</code></td><td>2</td><td>2</td><td>0</td><td>2</td><td>0</td></tr>
+<tr><td><code>04_unsupported.sql</code></td><td>4</td><td>0</td><td>4</td><td>0</td><td>5</td></tr>
+</tbody></table></section>
+<section id="statements"><h2>Statement inventory</h2>
+<h3><code>01_schema.sql</code></h3><ul class="plain">
+<li>line 2, #1, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 11, #2, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 20, #3, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 27, #4, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 28, #5, <code>create_table</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>02_revenue.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>insert_select</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>03_cycle.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>insert_select</code>: <span class="status-supported">supported</span></li>
+<li>line 4, #2, <code>insert_select</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>04_unsupported.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>insert_select</code>: <span class="status-unsupported">unsupported</span> — window_function</li>
+<li>line 8, #2, <code>select</code>: <span class="status-unsupported">unsupported</span> — recursive_cte</li>
+<li>line 15, #3, <code>select</code>: <span class="status-unsupported">unsupported</span> — lateral</li>
+<li>line 19, #4, <code>select</code>: <span class="status-unsupported">unsupported</span> — pivot</li>
+</ul>
+</section>
+<section id="unsupported"><h2>Unsupported statements</h2>
+<table><thead><tr><th>Location</th><th>Construct</th><th>Reason</th></tr></thead><tbody>
+<tr><td><code>04_unsupported.sql:5</code></td><td><code>window_function</code></td><td>window functions (OVER) are outside the supported subset</td></tr>
+<tr><td><code>04_unsupported.sql:8</code></td><td><code>recursive_cte</code></td><td>recursive common table expressions are not supported</td></tr>
+<tr><td><code>04_unsupported.sql:10</code></td><td><code>set_operation</code></td><td>UNION/INTERSECT/EXCEPT are not supported</td></tr>
+<tr><td><code>04_unsupported.sql:17</code></td><td><code>lateral</code></td><td>LATERAL sources are not supported</td></tr>
+<tr><td><code>04_unsupported.sql:21</code></td><td><code>pivot</code></td><td>PIVOT/UNPIVOT is not supported</td></tr>
+</tbody></table>
+</section>
+<section id="topology"><h2>Topology summary</h2><table><thead><tr>
+<th>Column</th><th>Upstream edges</th><th>Downstream edges</th></tr></thead><tbody>
+<tr><td><code>mart.ledger_a.id</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.ledger_b.id</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.revenue.day</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.revenue.source_note</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.revenue.total_amount</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>raw.orders.booked_at</code></td><td>0</td><td>1</td></tr>
+<tr><td><code>raw.orders.net_amount</code></td><td>0</td><td>1</td></tr>
+<tr><td><code>raw.orders.note</code></td><td>0</td><td>1</td></tr>
+</tbody></table></section>
+  </main>
+  <footer>Offline report. All styles are inlined; no scripts, fonts, images, or links are fetched.</footer>
+</body>
+</html>

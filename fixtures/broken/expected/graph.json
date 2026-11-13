@@ -1,0 +1,29 @@
+{
+  "edges": [
+    {"id":"e-c9fba465b37c2517","kind":"direct","locations":[{"line":1,"script":"03_cycle.sql","statement":1}],"scripts":["03_cycle.sql"],"source":"mart.ledger_b.id","target":"mart.ledger_a.id"},
+    {"id":"e-cb8cd0ceddeee79c","kind":"direct","locations":[{"line":4,"script":"03_cycle.sql","statement":2}],"scripts":["03_cycle.sql"],"source":"mart.ledger_a.id","target":"mart.ledger_b.id"},
+    {"id":"e-ceda9c3b86e6e807","kind":"expression","locations":[{"line":1,"script":"02_revenue.sql","statement":1}],"scripts":["02_revenue.sql"],"source":"raw.orders.booked_at","target":"mart.revenue.day"},
+    {"id":"e-c498cab31b0c5299","kind":"direct","locations":[{"line":1,"script":"02_revenue.sql","statement":1}],"scripts":["02_revenue.sql"],"source":"raw.orders.note","target":"mart.revenue.source_note"},
+    {"id":"e-655e2399aa7ddfab","kind":"direct","locations":[{"line":1,"script":"02_revenue.sql","statement":1}],"scripts":["02_revenue.sql"],"source":"raw.orders.net_amount","target":"mart.revenue.total_amount"}
+  ],
+  "input_digest": "14ba5bd3727acd1c6f7e9fc7418cabdf99c0a3fc1e661600f4c6cbcaebb8badb",
+  "nodes": [
+    {"assertions":[],"column":"id","data_type":"INT","id":"n-cc20f974b77cbfd9","name":"mart.ledger_a.id","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.ledger_a"},
+    {"assertions":[],"column":"val","data_type":"INT","id":"n-698d3419271c10aa","name":"mart.ledger_a.val","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.ledger_a"},
+    {"assertions":[],"column":"id","data_type":"INT","id":"n-524ac02fec6ebb07","name":"mart.ledger_b.id","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.ledger_b"},
+    {"assertions":[],"column":"val","data_type":"INT","id":"n-5a913f7b81a6afa9","name":"mart.ledger_b.val","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.ledger_b"},
+    {"assertions":[],"column":"day","data_type":"DATE","id":"n-b1c6dfe48b5c42ca","name":"mart.revenue.day","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.revenue"},
+    {"assertions":[],"column":"order_count","data_type":"INT","id":"n-9675dc78186e271d","name":"mart.revenue.order_count","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.revenue"},
+    {"assertions":[],"column":"source_note","data_type":"VARCHAR(40)","id":"n-0990fbf02065fc03","name":"mart.revenue.source_note","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.revenue"},
+    {"assertions":[],"column":"total_amount","data_type":"VARCHAR(20)","id":"n-f82062f4994153bd","name":"mart.revenue.total_amount","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.revenue"},
+    {"assertions":[],"column":"booked_at","data_type":"TIMESTAMP","id":"n-d740808909b1be15","name":"raw.orders.booked_at","nullable":true,"origin":"ddl","primary_key":false,"table":"raw.orders"},
+    {"assertions":["not_null"],"column":"currency","data_type":"VARCHAR(3)","id":"n-384b51f426e6c759","name":"raw.orders.currency","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"},
+    {"assertions":["not_null"],"column":"gross_amount","data_type":"DECIMAL(12,2)","id":"n-0de556f117088d8e","name":"raw.orders.gross_amount","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"},
+    {"assertions":[],"column":"net_amount","data_type":"DECIMAL(12,2)","id":"n-0c5758dba664145a","name":"raw.orders.net_amount","nullable":true,"origin":"ddl","primary_key":false,"table":"raw.orders"},
+    {"assertions":[],"column":"note","data_type":"VARCHAR(40)","id":"n-00295cc41aaf59c5","name":"raw.orders.note","nullable":true,"origin":"ddl","primary_key":false,"table":"raw.orders"},
+    {"assertions":["not_null","unique"],"column":"order_id","data_type":"INT","id":"n-99a9eccc10d96ebb","name":"raw.orders.order_id","nullable":false,"origin":"ddl","primary_key":true,"table":"raw.orders"}
+  ],
+  "project": "line-hello-broken",
+  "stats": {"edges":5,"nodes":14,"tables":4},
+  "version": 1
+}

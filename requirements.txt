@@ -1,0 +1,5 @@
+# Direct dependencies, pinned for reproducible offline installation.
+sqlglot==30.18.0
+PyYAML==6.0.2
+Flask==3.0.3
+pytest==8.3.5

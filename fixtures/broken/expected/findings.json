@@ -1,0 +1,158 @@
+{
+  "findings": [
+    {
+      "category": "cycle_detected",
+      "default_severity": "error",
+      "detail": "cycle: mart.ledger_a.id, mart.ledger_b.id",
+      "id": "f-480494a53ae5ddc1",
+      "line": 0,
+      "message": "a cycle was detected in the column lineage graph",
+      "overridden": false,
+      "script": "",
+      "severity": "error",
+      "target": "mart.ledger_a.id"
+    },
+    {
+      "category": "missing_upstream",
+      "default_severity": "error",
+      "detail": "missing: raw.orders.gross_amount",
+      "id": "f-233609e49c117955",
+      "line": 0,
+      "message": "1 required upstream column(s) are not direct sources",
+      "overridden": false,
+      "script": "broken.yaml",
+      "severity": "error",
+      "target": "mart.revenue.total_amount"
+    },
+    {
+      "category": "assertion_mismatch",
+      "default_severity": "warn",
+      "detail": "missing assertions: not_null",
+      "id": "f-0b53e4c46806d783",
+      "line": 0,
+      "message": "declared assertions are not present in DDL/static metadata",
+      "overridden": false,
+      "script": "broken.yaml",
+      "severity": "warn",
+      "target": "mart.revenue.day"
+    },
+    {
+      "category": "table_redefined",
+      "default_severity": "warn",
+      "detail": "redefined at 01_schema.sql:11; previous: 01_schema.sql:2",
+      "id": "f-102db59fc2b603e1",
+      "line": 11,
+      "message": "table is defined more than once",
+      "overridden": false,
+      "script": "01_schema.sql",
+      "severity": "warn",
+      "target": "raw.orders"
+    },
+    {
+      "category": "type_mismatch",
+      "default_severity": "error",
+      "detail": "expected: numeric; actual: VARCHAR(20)",
+      "id": "f-0b5c7f8d4e99cf9c",
+      "line": 0,
+      "message": "declared type does not match the statically extracted type",
+      "overridden": true,
+      "script": "broken.yaml",
+      "severity": "warn",
+      "target": "mart.revenue.total_amount"
+    },
+    {
+      "category": "unexpected_upstream",
+      "default_severity": "warn",
+      "detail": "unexpected: raw.orders.net_amount; forbidden: raw.orders.net_amount",
+      "id": "f-a5ca4c81012c4302",
+      "line": 0,
+      "message": "column has upstream sources outside the declared allow-list",
+      "overridden": false,
+      "script": "broken.yaml",
+      "severity": "warn",
+      "target": "mart.revenue.total_amount"
+    },
+    {
+      "category": "unsupported_sql",
+      "default_severity": "warn",
+      "detail": "UNION/INTERSECT/EXCEPT are not supported",
+      "id": "f-4f1423ee8af7d835",
+      "line": 10,
+      "message": "unsupported SQL construct: set_operation",
+      "overridden": false,
+      "script": "04_unsupported.sql",
+      "severity": "warn",
+      "target": "04_unsupported.sql:10:set_operation"
+    },
+    {
+      "category": "unsupported_sql",
+      "default_severity": "warn",
+      "detail": "LATERAL sources are not supported",
+      "id": "f-e267c70dba967d8f",
+      "line": 17,
+      "message": "unsupported SQL construct: lateral",
+      "overridden": false,
+      "script": "04_unsupported.sql",
+      "severity": "warn",
+      "target": "04_unsupported.sql:17:lateral"
+    },
+    {
+      "category": "unsupported_sql",
+      "default_severity": "warn",
+      "detail": "PIVOT/UNPIVOT is not supported",
+      "id": "f-15acf6d4a06c119a",
+      "line": 21,
+      "message": "unsupported SQL construct: pivot",
+      "overridden": false,
+      "script": "04_unsupported.sql",
+      "severity": "warn",
+      "target": "04_unsupported.sql:21:pivot"
+    },
+    {
+      "category": "unsupported_sql",
+      "default_severity": "warn",
+      "detail": "window functions (OVER) are outside the supported subset",
+      "id": "f-ed8a0abfa802f806",
+      "line": 5,
+      "message": "unsupported SQL construct: window_function",
+      "overridden": false,
+      "script": "04_unsupported.sql",
+      "severity": "warn",
+      "target": "04_unsupported.sql:5:window_function"
+    },
+    {
+      "category": "unsupported_sql",
+      "default_severity": "warn",
+      "detail": "recursive common table expressions are not supported",
+      "id": "f-d0bf97fc0fb965c5",
+      "line": 8,
+      "message": "unsupported SQL construct: recursive_cte",
+      "overridden": false,
+      "script": "04_unsupported.sql",
+      "severity": "warn",
+      "target": "04_unsupported.sql:8:recursive_cte"
+    }
+  ],
+  "input_digest": "14ba5bd3727acd1c6f7e9fc7418cabdf99c0a3fc1e661600f4c6cbcaebb8badb",
+  "project": "line-hello-broken",
+  "summary": {
+    "by_category": {
+      "assertion_mismatch": 1,
+      "cycle_detected": 1,
+      "missing_upstream": 1,
+      "table_redefined": 1,
+      "type_mismatch": 1,
+      "unexpected_upstream": 1,
+      "unsupported_sql": 5
+    },
+    "by_severity": {
+      "error": 2,
+      "warn": 9
+    },
+    "severity_overrides": {
+      "type_mismatch": "warn"
+    },
+    "total": 11
+  },
+  "version": 1
+}

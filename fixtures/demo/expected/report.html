@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lineage Inquest · line-hello-demo</title>
+  <style>
+    :root {
+      --bg: #f6f7f9; --panel: #ffffff; --ink: #1f2933; --muted: #5c6b7a;
+      --line: #d9e0e7; --accent: #145c7a; --error: #a4262c; --warn: #8a5a00;
+      --info: #235c8a;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+    header { background: #10384a; color: #fff; padding: 24px 32px; }
+    header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 650; }
+    header p { margin: 2px 0; color: #d6e6ee; font-size: 13px; }
+    main { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+    section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      padding: 18px 20px; margin-bottom: 18px; }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    h3 { margin: 18px 0 8px; font-size: 15px; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+    .metric { border: 1px solid var(--line); border-radius: 6px; padding: 12px; background: #fbfcfd; }
+    .metric strong { display: block; font-size: 24px; line-height: 1.1; }
+    .metric span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; background: #f3f6f8; }
+    code { font: 12px/1.4 "Cascadia Mono", Consolas, monospace; word-break: break-word; }
+    .sev { display: inline-block; min-width: 48px; text-align: center; border-radius: 999px;
+      padding: 1px 8px; font-size: 11px; font-weight: 650; text-transform: uppercase; }
+    .sev-error { color: #fff; background: var(--error); }
+    .sev-warn { color: #fff; background: var(--warn); }
+    .sev-info { color: #fff; background: var(--info); }
+    .muted { color: var(--muted); }
+    .empty { color: var(--muted); font-style: italic; }
+    .overridden { border-left: 3px solid var(--accent); padding-left: 10px; }
+    details { margin: 2px 0; }
+    summary { cursor: pointer; color: var(--accent); }
+    ul.plain { margin: 4px 0; padding-left: 20px; }
+    .status-supported { color: #1f6b3c; font-weight: 600; }
+    .status-unsupported { color: var(--error); font-weight: 600; }
+    footer { max-width: 1180px; margin: 0 auto; padding: 0 20px 32px; color: var(--muted); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lineage Inquest</h1>
+    <p>Static SQL lineage and contract inquest · line-hello-demo</p>
+    <p>Run run-f4909f280e3c · Generated 2024-06-01T00:00:00Z · Input 4fc04d8bb371d181 · Config 648506ba1bd9ad1a</p>
+  </header>
+  <main>
+<section id="overview"><h2>Overview</h2><div class="metrics">
+<div class="metric"><strong>7</strong><span>Tables</span></div>
+<div class="metric"><strong>30</strong><span>Nodes</span></div>
+<div class="metric"><strong>18</strong><span>Edges</span></div>
+<div class="metric"><strong>0</strong><span>Findings</span></div>
+<div class="metric"><strong>0</strong><span>Unsupported</span></div>
+<div class="metric"><strong>5</strong><span>Scripts</span></div>
+<div class="metric"><strong>12</strong><span>Statements</span></div>
+</div>
+<p class="muted">By severity: none</p>
+</section>
+<section id="severity"><h2>Severity policy</h2><table><thead><tr>
+<th>Category</th><th>Severity</th><th>Source</th><th>Default</th></tr></thead><tbody>
+<tr><td><code>missing_upstream</code></td><td><span class="sev sev-error">error</span></td><td>built-in default</td><td><span class="sev sev-error">error</span></td></tr>
+<tr class="overridden"><td><code>unexpected_upstream</code></td><td><span class="sev sev-info">info</span></td><td>config override</td><td><span class="sev sev-warn">warn</span></td></tr>
+<tr><td><code>type_mismatch</code></td><td><span class="sev sev-error">error</span></td><td>built-in default</td><td><span class="sev sev-error">error</span></td></tr>
+<tr><td><code>assertion_mismatch</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+<tr><td><code>unsupported_sql</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+<tr><td><code>cycle_detected</code></td><td><span class="sev sev-error">error</span></td><td>built-in default</td><td><span class="sev sev-error">error</span></td></tr>
+<tr><td><code>table_redefined</code></td><td><span class="sev sev-warn">warn</span></td><td>built-in default</td><td><span class="sev sev-warn">warn</span></td></tr>
+</tbody></table></section>
+<section id="findings"><h2>Findings</h2>
+<p class="empty">No findings.</p>
+</section>
+<section id="files"><h2>By script</h2><table><thead><tr>
+<th>Script</th><th>Statements</th><th>Supported</th><th>Unsupported</th><th>Edges</th><th>Findings</th></tr></thead><tbody>
+<tr><td><code>01_sources.sql</code></td><td>2</td><td>2</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td><code>02_marts.sql</code></td><td>4</td><td>4</td><td>0</td><td>5</td><td>0</td></tr>
+<tr><td><code>03_rollup.sql</code></td><td>3</td><td>3</td><td>0</td><td>6</td><td>0</td></tr>
+<tr><td><code>04_star.sql</code></td><td>1</td><td>1</td><td>0</td><td>7</td><td>0</td></tr>
+<tr><td><code>05_maintenance.sql</code></td><td>2</td><td>2</td><td>0</td><td>0</td><td>0</td></tr>
+</tbody></table></section>
+<section id="statements"><h2>Statement inventory</h2>
+<h3><code>01_sources.sql</code></h3><ul class="plain">
+<li>line 2, #1, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 12, #2, <code>create_table</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>02_marts.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 7, #2, <code>insert_select</code>: <span class="status-supported">supported</span></li>
+<li>line 14, #3, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 20, #4, <code>insert_select</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>03_rollup.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>ctas</code>: <span class="status-supported">supported</span></li>
+<li>line 8, #2, <code>create_table</code>: <span class="status-supported">supported</span></li>
+<li>line 14, #3, <code>merge</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>04_star.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>ctas</code>: <span class="status-supported">supported</span></li>
+</ul>
+<h3><code>05_maintenance.sql</code></h3><ul class="plain">
+<li>line 1, #1, <code>alter_table</code>: <span class="status-supported">supported</span></li>
+<li>line 2, #2, <code>drop_table</code>: <span class="status-supported">supported</span></li>
+</ul>
+</section>
+<section id="unsupported"><h2>Unsupported statements</h2>
+<p class="empty">None.</p>
+</section>
+<section id="topology"><h2>Topology summary</h2><table><thead><tr>
+<th>Column</th><th>Upstream edges</th><th>Downstream edges</th></tr></thead><tbody>
+<tr><td><code>raw.orders.net_amount</code></td><td>0</td><td>3</td></tr>
+<tr><td><code>mart.customer_revenue.customer_id</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.customer_revenue.region</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.customer_revenue.revenue</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.customer_rollup.customer_id</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.customer_rollup.lifetime_revenue</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>mart.customer_rollup.region</code></td><td>1</td><td>1</td></tr>
+<tr><td><code>raw.orders.customer_id</code></td><td>0</td><td>2</td></tr>
+<tr><td><code>raw.orders.order_ts</code></td><td>0</td><td>2</td></tr>
+<tr><td><code>mart.customer_latest.customer_id</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.customer_latest.lifetime_revenue</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.customer_latest.region</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.daily_revenue.order_date</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.daily_revenue.revenue</code></td><td>1</td><td>0</td></tr>
+<tr><td><code>mart.orders_copy.currency</code></td><td>1</td><td>0</td></tr>
+</tbody></table></section>
+  </main>
+  <footer>Offline report. All styles are inlined; no scripts, fonts, images, or links are fetched.</footer>
+</body>
+</html>

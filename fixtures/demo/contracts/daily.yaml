@@ -1,0 +1,15 @@
+version: 1
+contracts:
+  - target: mart.daily_revenue.order_date
+    required_upstream:
+      - raw.orders.order_ts
+    expected_type: date
+    assertions: [not_null]
+    description: One row per UTC order day.
+  - target: mart.daily_revenue.revenue
+    required_upstream:
+      - raw.orders.net_amount
+    expected_type: numeric
+    assertions: [not_null]
+  - target: mart.daily_revenue.order_count
+    expected_type: bigint

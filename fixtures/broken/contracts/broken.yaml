@@ -1,0 +1,20 @@
+version: 1
+contracts:
+  - target: mart.revenue.total_amount
+    required_upstream:
+      - raw.orders.gross_amount
+    forbidden_upstream:
+      - raw.orders.net_amount
+    expected_type: numeric
+    description: Revenue must come from the gross measure, not the net measure.
+  - target: mart.revenue.day
+    required_upstream:
+      - raw.orders.booked_at
+    expected_type: date
+    assertions: [not_null]
+  - target: mart.revenue.source_note
+    required_upstream:
+      - raw.orders.note
+    expected_type: string
+  - target: mart.revenue.order_count
+    expected_type: integer

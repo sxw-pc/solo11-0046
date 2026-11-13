@@ -1,0 +1,26 @@
+version: 1
+contracts:
+  - target: mart.customer_revenue.customer_id
+    required_upstream:
+      - raw.orders.customer_id
+    expected_type: integer
+  - target: mart.customer_revenue.region
+    required_upstream:
+      - raw.customers.region
+    expected_type: string
+  - target: mart.customer_revenue.revenue
+    required_upstream:
+      - raw.orders.net_amount
+    expected_type: numeric
+  - target: mart.customer_rollup.lifetime_revenue
+    required_upstream:
+      - mart.customer_revenue.revenue
+    expected_type: numeric
+  - target: mart.customer_latest.lifetime_revenue
+    required_upstream:
+      - mart.customer_rollup.lifetime_revenue
+    expected_type: numeric
+  - target: mart.orders_copy.note
+    required_upstream:
+      - raw.orders.note
+    expected_type: string

@@ -1,0 +1,14 @@
+{
+  "findings": [],
+  "input_digest": "4fc04d8bb371d181a1e9785d4b7b8a4c9d5e7e3251b04c2c001c4bb5b673c550",
+  "project": "line-hello-demo",
+  "summary": {
+    "by_category": {},
+    "by_severity": {},
+    "severity_overrides": {
+      "unexpected_upstream": "info"
+    },
+    "total": 0
+  },
+  "version": 1
+}

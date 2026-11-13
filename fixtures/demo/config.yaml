@@ -1,0 +1,12 @@
+project: line-hello-demo
+sql_dir: sql
+contracts_dir: contracts
+out_dir: out
+default_schema: main
+server:
+  host: 127.0.0.1
+  port: 5000
+frozen_time: "2024-06-01T00:00:00Z"
+severity:
+  unexpected_upstream: info
+max_query_depth: 8

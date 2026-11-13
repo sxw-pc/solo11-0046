@@ -1,0 +1,12 @@
+# Local scratch output, generated ledgers and tool caches.
+.work/
+.venv/
+.benchmarks/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.sqlite
+*.sqlite-journal
+fixtures/*/out/
+fixtures/*/exports/
+.coverage

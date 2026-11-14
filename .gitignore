@@ -10,3 +10,8 @@ __pycache__/
 fixtures/*/out/
 fixtures/*/exports/
 .coverage
+venv/
+node_modules/
+*.pyc
+.env
+dist/

@@ -1,7 +1,14 @@
 from support import findings_for
 
 from lineage_inquest.graph.build import edge_payload
-from lineage_inquest.graph.query import detect_cycles, downstream, upstream
+from lineage_inquest.graph.query import (
+    detect_cycles,
+    downstream,
+    downstream_closure,
+    upstream,
+    upstream_closure,
+    upstream_distances,
+)
 from lineage_inquest.graph.stable import edge_id, node_id
 from lineage_inquest.models import Edge, EdgeLocation, Graph, Node
 
@@ -124,3 +131,51 @@ def test_content_addressed_ids_ignore_locations_and_encode_identity():
     assert direct == edge_id("raw.s.a", "mart.t.a", "direct")
     assert direct != edge_id("raw.s.a", "mart.t.a", "expression")
     assert direct != edge_id("raw.s.b", "mart.t.a", "direct")
+
+
+def test_upstream_distances_and_closures_are_shortest_and_cycle_safe(project_factory):
+    p = project_factory("closures")
+    p.sql(
+        "chain.sql",
+        """
+        CREATE TABLE raw.s (a INT);
+        CREATE TABLE stage.s AS SELECT a FROM raw.s;
+        CREATE TABLE mart.s AS SELECT a FROM stage.s;
+        CREATE TABLE report.s AS SELECT a FROM mart.s;
+        """,
+    )
+    result = p.scan()
+    graph = result.graph
+    assert upstream_distances(graph, "report.s.a") == {
+        "mart.s.a": 1,
+        "stage.s.a": 2,
+        "raw.s.a": 3,
+    }
+    assert upstream_distances(graph, "report.s.a", depth=2) == {
+        "mart.s.a": 1,
+        "stage.s.a": 2,
+    }
+    assert upstream_closure(graph, {"mart.s.a"}) == {"mart.s.a", "stage.s.a", "raw.s.a"}
+    assert downstream_closure(graph, {"stage.s.a"}) == {
+        "stage.s.a",
+        "mart.s.a",
+        "report.s.a",
+    }
+
+
+def test_upstream_distances_do_not_loop_on_cycles(project_factory):
+    p = project_factory("closure-cycle")
+    p.sql(
+        "cycle.sql",
+        """
+        CREATE TABLE mart.a (id INT);
+        CREATE TABLE mart.b (id INT);
+        INSERT INTO mart.a (id) SELECT id FROM mart.b;
+        INSERT INTO mart.b (id) SELECT id FROM mart.a;
+        """,
+    )
+    result = p.scan()
+    # The other node is one hop up; the target itself never appears.
+    assert upstream_distances(result.graph, "mart.a.id") == {"mart.b.id": 1}
+    assert upstream_closure(result.graph, {"mart.a.id"}) == {"mart.a.id", "mart.b.id"}
+    assert downstream_closure(result.graph, {"mart.a.id"}) == {"mart.a.id", "mart.b.id"}

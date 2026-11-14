@@ -57,6 +57,7 @@ python -m lineage_inquest scan --config fixtures/demo/config.yaml
 
 # 3. 扫描负样本并核对 findings 期望快照（不一致时退出码 1）
 python -m lineage_inquest verify --config fixtures/broken/config.yaml
+python -m lineage_inquest verify --config fixtures/transitive/config.yaml
 
 # 4. 启动只读本地查看服务（仅 127.0.0.1，默认端口 5000）
 python -m lineage_inquest serve --config fixtures/demo/config.yaml
@@ -79,6 +80,9 @@ pytest -q
 - `fixtures/demo/`：干净的正样本，扫描结果为 0 finding、0 unsupported。
 - `fixtures/broken/`：包含契约冲突、字段环、重复建表、窗口函数、递归 CTE、
   LATERAL、PIVOT 等负样本，并带期望快照。
+- `fixtures/transitive/`：同一份 contracts 目录下 direct 与 `upstream_mode:
+  transitive` 契约共存的正负样本，覆盖可达来源、最近未声明祖先与深层
+  `forbidden_upstream` 命中，带期望快照。
 
 ## 3. 支持的 SQL 子集
 
@@ -120,11 +124,18 @@ pytest -q
 | 字段 | 必填 | 说明 |
 |---|---|---|
 | `target` | 是 | 目标列，`schema.table.column`；两段写法用 `default_schema` 补全 |
-| `required_upstream` | 否 | 允许的直接上游列白名单；空表示不检查缺失 |
-| `forbidden_upstream` | 否 | 禁止的直接上游；与 required 重合会报配置错误 |
+| `upstream_mode` | 否 | 上游比对模式：`direct`（默认）只比直接边；`transitive` 按可达上游判定。每个 target 只能选一种 |
+| `transitive` | 否 | `upstream_mode` 的布尔简写；`true` 等价 `transitive`，`false` 等价 `direct`。不能与 `upstream_mode` 同时出现 |
+| `required_upstream` | 否 | direct 模式下是**直接**上游白名单；transitive 模式下是**必须可达**的上游列，空表示不检查缺失 |
+| `forbidden_upstream` | 否 | 禁止的上游；direct 模式只看一跳，transitive 模式在整条可达路径上命中。与 required 重合会报配置错误 |
 | `expected_type` | 否 | 期望类型；支持 `integer`/`numeric`/`string`/`boolean`/`date`/`timestamp` 家族、`any`/`*` 或精确类型文本 |
 | `assertions` | 否 | 静态断言列表：`not_null`、`unique`、`range:[min,max]`（范围建议写成带引号字符串） |
 | `description` | 否 | 仅供人工阅读，不参与比对 |
+
+`upstream_mode`（及其简写 `transitive`）是**逐契约**选择的，因此同一份 contracts
+目录里老契约可以继续只比直接边，新契约可以按可达上游判定。配置在**加载期**校验：
+不认识的键、两种模式同时出现、`upstream_mode` 取非法值、同一 YAML 映射重复键，
+都会直接报错而不是静默取其一。同一个 target 也只能定义一次，跨文件重复同样报错。
 
 完整合成示例：
 
@@ -145,14 +156,35 @@ contracts:
     required_upstream:
       - raw.customers.region
     expected_type: string
+  # Two-hop source: reachable upstream, not a direct edge.
+  - target: mart.customer_latest.lifetime_revenue
+    upstream_mode: transitive
+    required_upstream:
+      - raw.orders.net_amount
+    forbidden_upstream:
+      - raw.orders.gross_amount
 ```
 
 比对语义：
 
-- 只比较**直接上游边**，不自动展开传递闭包。若契约要求传递来源，请显式列出
-  直接来源列，或在后续迭代中扩展。
-- 任何未被 `required_upstream` 列出的实际直接来源都会产生
+- **direct 模式**（默认，未写 `upstream_mode`/`transitive`）只比较**直接上游边**，
+  不自动展开传递闭包。任何未被 `required_upstream` 列出的实际直接来源都会产生
   `unexpected_upstream`；`forbidden_upstream` 命中会写入该 finding 的 detail。
+  既有行为与 detail 文本保持不变。
+- **transitive 模式**：
+  - `required_upstream` 表示必须出现在**可达上游集合**里；缺失会产生
+    `missing_upstream`，detail 写作 `mode=transitive; missing reachable: ...`。
+  - 可达集合**不是白名单**。声明一个列会为其所在路径背书：该列本身，以及它与
+    target 之间的每一跳都视为已声明。其余可达列属于未声明分支；只有**最近的那批
+    未声明祖先**（即它与 target 之间不再夹着其它未声明列）会被报告，更深的列由其
+    隐含，不重复报告，因此不会像“闭包做差”那样几乎每条传递契约都爆
+    `unexpected_upstream`。detail 写作
+    `mode=transitive; unexpected nearest undeclared: ...`。
+  - `forbidden_upstream` 在整个可达集合上匹配，即使埋在传递路径深处也能命中；
+    命中写在同一个 `unexpected_upstream` finding 的 `forbidden: ...` 段里。
+- 一个 target 只能选一种模式。模式标记固定写在 detail 文本里（direct 保留原文本，
+  transitive 以 `mode=transitive; ` 开头），因此 finding_id 在不同模式下稳定区分，
+  同一次 scan 中两种模式的 finding 不会互相污染。
 - target 不在图中、或必需来源缺失，产生 `missing_upstream`。
 - `expected_type` 与静态推导/DDL 类型按类型家族或精确文本比较，不符时产生
   `type_mismatch`。
@@ -242,7 +274,8 @@ HTML 使用内联 CSS、无 JavaScript、无外链、无 CDN，可直接离线�
 
 ## 7. 已知限制
 
-- 契约只比较直接上游；没有隐式传递闭包、列合并或阈值匹配。
+- 契约默认只比较直接上游；需要可达上游时请显式选择 `upstream_mode: transitive`，
+  不做自动猜测、列合并或阈值匹配。
 - 方言覆盖是 sqlglot 通用语法上的**受限子集**，不做多方言适配；不支持项只报告，
   不进行部分推断。
 - `SELECT *` 依赖已解析的来源表结构；来源未知或列不可确定时记 unsupported。

@@ -20,6 +20,73 @@ def _adjacency(graph: Graph, direction: str) -> dict[str, list[Edge]]:
     return result
 
 
+def _upstream_neighbors(graph: Graph) -> dict[str, tuple[str, ...]]:
+    """Sorted set of direct sources for every target column."""
+    result: dict[str, set[str]] = {}
+    for edge in graph.edges:
+        result.setdefault(edge.target, set()).add(edge.source)
+    return {key: tuple(sorted(value)) for key, value in result.items()}
+
+
+def _downstream_neighbors(graph: Graph) -> dict[str, tuple[str, ...]]:
+    """Sorted set of direct consumers for every source column."""
+    result: dict[str, set[str]] = {}
+    for edge in graph.edges:
+        result.setdefault(edge.source, set()).add(edge.target)
+    return {key: tuple(sorted(value)) for key, value in result.items()}
+
+
+def upstream_distances(graph: Graph, node: str, depth: int | None = None) -> dict[str, int]:
+    """Shortest upstream hop distance for every ancestor of ``node``.
+
+    ``node`` itself is never included, even when a cycle leads back to it.
+    ``depth`` limits traversal when given; ``None`` means the full reachable
+    set.  The result is cycle-safe and independent of edge order.
+    """
+    by_name = {item.name: item for item in graph.nodes}
+    if node not in by_name:
+        raise NotFoundError(f"node not found in this run: {node}")
+    neighbors = _upstream_neighbors(graph)
+    distances: dict[str, int] = {}
+    seen = {node}
+    queue = deque([(node, 0)])
+    while queue:
+        current, hop = queue.popleft()
+        if depth is not None and hop >= depth:
+            continue
+        for source in neighbors.get(current, ()):
+            if source in seen:
+                continue
+            seen.add(source)
+            distances[source] = hop + 1
+            queue.append((source, hop + 1))
+    return distances
+
+
+def _closure(graph: Graph, seeds, neighbors: dict[str, tuple[str, ...]]) -> set[str]:
+    reached: set[str] = set()
+    queue = deque(sorted(set(seeds)))
+    while queue:
+        current = queue.popleft()
+        if current in reached:
+            continue
+        reached.add(current)
+        for neighbor in neighbors.get(current, ()):
+            if neighbor not in reached:
+                queue.append(neighbor)
+    return reached
+
+
+def upstream_closure(graph: Graph, seeds) -> set[str]:
+    """All seeds plus every column reachable from them by following sources."""
+    return _closure(graph, seeds, _upstream_neighbors(graph))
+
+
+def downstream_closure(graph: Graph, seeds) -> set[str]:
+    """All seeds plus every column reachable from them by following consumers."""
+    return _closure(graph, seeds, _downstream_neighbors(graph))
+
+
 def upstream(graph: Graph, node: str, depth: int = 8) -> dict:
     return _traverse(graph, node, "upstream", depth)
 

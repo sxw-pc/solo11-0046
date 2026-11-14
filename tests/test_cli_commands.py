@@ -135,6 +135,24 @@ def test_verify_broken_fixture_succeeds(tmp_path, capsys):
     assert "verify OK" in captured.out
 
 
+def test_verify_transitive_fixture_succeeds(tmp_path, capsys):
+    root = Path(__file__).resolve().parents[1]
+    code = main(
+        [
+            "verify",
+            "--config",
+            str(root / "fixtures" / "transitive" / "config.yaml"),
+            "--out",
+            str(tmp_path / "pytest-verify-transitive"),
+            "--expect",
+            str(root / "fixtures" / "transitive" / "expected" / "findings.json"),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert code == 0, captured.err
+    assert "verify OK" in captured.out
+
+
 def test_ledger_store_round_trip(demo_project):
     result = demo_project.scan()
     out = demo_project.root / "roundtrip"

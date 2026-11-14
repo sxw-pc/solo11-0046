@@ -1,0 +1,11 @@
+project: line-hello-transitive
+sql_dir: sql
+contracts_dir: contracts
+out_dir: out
+default_schema: main
+server:
+  host: 127.0.0.1
+  port: 5002
+frozen_time: "2024-06-03T00:00:00Z"
+expect_findings: expected/findings.json
+max_query_depth: 8

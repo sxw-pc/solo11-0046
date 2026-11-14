@@ -1,0 +1,53 @@
+{
+  "findings": [
+    {
+      "category": "unexpected_upstream",
+      "default_severity": "warn",
+      "detail": "mode=transitive; unexpected nearest undeclared: mart.customer_revenue.customer_id; forbidden: raw.orders.customer_id",
+      "id": "f-d0db426f3fd2dc44",
+      "line": 0,
+      "message": "column has upstream sources outside the declared allow-list",
+      "overridden": false,
+      "script": "mixed.yaml",
+      "severity": "warn",
+      "target": "mart.customer_latest.customer_id"
+    },
+    {
+      "category": "unexpected_upstream",
+      "default_severity": "warn",
+      "detail": "mode=transitive; unexpected nearest undeclared: raw.orders.gross_amount",
+      "id": "f-23a3ee34e2fedb68",
+      "line": 0,
+      "message": "column has upstream sources outside the declared allow-list",
+      "overridden": false,
+      "script": "mixed.yaml",
+      "severity": "warn",
+      "target": "mart.customer_latest.lifetime_revenue"
+    },
+    {
+      "category": "unexpected_upstream",
+      "default_severity": "warn",
+      "detail": "unexpected: raw.orders.gross_amount",
+      "id": "f-35a74779762eab51",
+      "line": 0,
+      "message": "column has upstream sources outside the declared allow-list",
+      "overridden": false,
+      "script": "mixed.yaml",
+      "severity": "warn",
+      "target": "mart.customer_revenue.revenue"
+    }
+  ],
+  "input_digest": "fe079468eaa5830007068bfc2beafc59cf5bcc2fd4f896572ec47a9261f2ece9",
+  "project": "line-hello-transitive",
+  "summary": {
+    "by_category": {
+      "unexpected_upstream": 3
+    },
+    "by_severity": {
+      "warn": 3
+    },
+    "severity_overrides": {},
+    "total": 3
+  },
+  "version": 1
+}

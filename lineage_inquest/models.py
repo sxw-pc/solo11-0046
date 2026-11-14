@@ -99,6 +99,7 @@ class Graph:
 @dataclass(frozen=True)
 class Contract:
     target: str
+    upstream_mode: str = "direct"
     required_upstream: tuple[str, ...] = ()
     forbidden_upstream: tuple[str, ...] = ()
     expected_type: str | None = None

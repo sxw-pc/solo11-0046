@@ -89,6 +89,36 @@ def test_broken_expected_snapshot_has_all_structural_categories():
     }
 
 
+def test_transitive_expected_snapshot_matches_and_is_byte_stable():
+    root = Path(__file__).resolve().parents[1]
+    config = load_config(root / "fixtures" / "transitive" / "config.yaml")
+    expected = json.loads(
+        (root / "fixtures" / "transitive" / "expected" / "findings.json").read_text(encoding="utf-8")
+    )
+    first = scan(config, "2024-06-03T00:00:00Z")
+    second = scan(config, "2024-06-03T00:00:00Z")
+    assert findings_payload(first) == expected
+    assert findings_payload(first) == findings_payload(second)
+    assert graph_payload(first) == graph_payload(second)
+    by_target = {item.target: item for item in first.findings}
+    assert set(by_target) == {
+        "mart.customer_latest.customer_id",
+        "mart.customer_latest.lifetime_revenue",
+        "mart.customer_revenue.revenue",
+    }
+    # Same graph, three different contract modes: the direct finding keeps
+    # the original text, transitive findings say so, and the deep forbidden
+    # column is caught.
+    assert by_target["mart.customer_revenue.revenue"].detail == "unexpected: raw.orders.gross_amount"
+    assert by_target["mart.customer_latest.lifetime_revenue"].detail == (
+        "mode=transitive; unexpected nearest undeclared: raw.orders.gross_amount"
+    )
+    assert by_target["mart.customer_latest.customer_id"].detail == (
+        "mode=transitive; unexpected nearest undeclared: mart.customer_revenue.customer_id"
+        "; forbidden: raw.orders.customer_id"
+    )
+
+
 def test_external_network_is_rejected_while_tests_run():
     with pytest.raises(AssertionError, match="external network access is disabled"):
         socket.create_connection(("offline-host", 9), timeout=0.1)

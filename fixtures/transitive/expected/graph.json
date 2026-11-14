@@ -1,0 +1,263 @@
+{
+  "edges": [
+    {
+      "id": "e-507d62dccffcf1ee",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 18,
+          "script": "02_chain.sql",
+          "statement": 4
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "mart.customer_rollup.customer_id",
+      "target": "mart.customer_latest.customer_id"
+    },
+    {
+      "id": "e-3db3a3aa59fbf907",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 18,
+          "script": "02_chain.sql",
+          "statement": 4
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "mart.customer_rollup.lifetime_revenue",
+      "target": "mart.customer_latest.lifetime_revenue"
+    },
+    {
+      "id": "e-09466cadb634665c",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 3,
+          "script": "02_chain.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "raw.orders.customer_id",
+      "target": "mart.customer_revenue.customer_id"
+    },
+    {
+      "id": "e-d19c7ecee46ffc72",
+      "kind": "aggregate",
+      "locations": [
+        {
+          "line": 3,
+          "script": "02_chain.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "raw.orders.gross_amount",
+      "target": "mart.customer_revenue.revenue"
+    },
+    {
+      "id": "e-82c6eb17da8c6a10",
+      "kind": "aggregate",
+      "locations": [
+        {
+          "line": 3,
+          "script": "02_chain.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "raw.orders.net_amount",
+      "target": "mart.customer_revenue.revenue"
+    },
+    {
+      "id": "e-2d75e5f52948a6e2",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 8,
+          "script": "02_chain.sql",
+          "statement": 2
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "mart.customer_revenue.customer_id",
+      "target": "mart.customer_rollup.customer_id"
+    },
+    {
+      "id": "e-c8cbefcf3c1a4a5c",
+      "kind": "aggregate",
+      "locations": [
+        {
+          "line": 8,
+          "script": "02_chain.sql",
+          "statement": 2
+        }
+      ],
+      "scripts": [
+        "02_chain.sql"
+      ],
+      "source": "mart.customer_revenue.revenue",
+      "target": "mart.customer_rollup.lifetime_revenue"
+    }
+  ],
+  "input_digest": "fe079468eaa5830007068bfc2beafc59cf5bcc2fd4f896572ec47a9261f2ece9",
+  "nodes": [
+    {
+      "assertions": [
+        "not_null",
+        "unique"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-5675cec9ab9581d9",
+      "name": "mart.customer_latest.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": true,
+      "table": "mart.customer_latest"
+    },
+    {
+      "assertions": [],
+      "column": "lifetime_revenue",
+      "data_type": "DECIMAL(18,2)",
+      "id": "n-0ec9a07d6e9ece0e",
+      "name": "mart.customer_latest.lifetime_revenue",
+      "nullable": true,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_latest"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-6a87b37c7384b048",
+      "name": "mart.customer_revenue.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_revenue"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "revenue",
+      "data_type": "DECIMAL(18,2)",
+      "id": "n-36f20c025281aeb0",
+      "name": "mart.customer_revenue.revenue",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_revenue"
+    },
+    {
+      "assertions": [],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-c4c41e50bd0bad07",
+      "name": "mart.customer_rollup.customer_id",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.customer_rollup"
+    },
+    {
+      "assertions": [],
+      "column": "lifetime_revenue",
+      "data_type": "DECIMAL",
+      "id": "n-c467fb0c9ef985eb",
+      "name": "mart.customer_rollup.lifetime_revenue",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.customer_rollup"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-678a658cf3830f06",
+      "name": "raw.orders.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "gross_amount",
+      "data_type": "DECIMAL(12,2)",
+      "id": "n-0de556f117088d8e",
+      "name": "raw.orders.gross_amount",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "net_amount",
+      "data_type": "DECIMAL(12,2)",
+      "id": "n-0c5758dba664145a",
+      "name": "raw.orders.net_amount",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [],
+      "column": "note",
+      "data_type": "VARCHAR(80)",
+      "id": "n-00295cc41aaf59c5",
+      "name": "raw.orders.note",
+      "nullable": true,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null",
+        "unique"
+      ],
+      "column": "order_id",
+      "data_type": "BIGINT",
+      "id": "n-99a9eccc10d96ebb",
+      "name": "raw.orders.order_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": true,
+      "table": "raw.orders"
+    }
+  ],
+  "project": "line-hello-transitive",
+  "stats": {
+    "edges": 7,
+    "nodes": 11,
+    "tables": 4
+  },
+  "version": 1
+}

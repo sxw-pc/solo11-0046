@@ -1,0 +1,31 @@
+version: 1
+contracts:
+  # Old-style direct contract: still compares one-hop sources only.
+  - target: mart.customer_revenue.revenue
+    required_upstream:
+      - raw.orders.net_amount
+    expected_type: numeric
+  # Transitive contract, clean: both raw measures are reachable two hops
+  # above mart.customer_rollup.lifetime_revenue.
+  - target: mart.customer_rollup.lifetime_revenue
+    upstream_mode: transitive
+    required_upstream:
+      - raw.orders.net_amount
+      - raw.orders.gross_amount
+    expected_type: numeric
+  # Transitive contract, nearest undeclared ancestor: only net_amount is
+  # declared, so the gross_amount branch is reported once at its nearest
+  # hop instead of every intermediate hop being re-reported.
+  - target: mart.customer_latest.lifetime_revenue
+    upstream_mode: transitive
+    required_upstream:
+      - raw.orders.net_amount
+    expected_type: numeric
+  # Transitive contract, deep forbidden: raw.orders.customer_id sits three
+  # hops below the declared direct source but must still be caught.
+  - target: mart.customer_latest.customer_id
+    upstream_mode: transitive
+    required_upstream:
+      - mart.customer_rollup.customer_id
+    forbidden_upstream:
+      - raw.orders.customer_id

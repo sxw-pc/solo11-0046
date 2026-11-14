@@ -1,8 +1,18 @@
-"""Deterministic scan orchestration: scripts -> graph -> contracts -> findings."""
+"""Deterministic scan orchestration: scripts -> graph -> contracts -> findings.
+
+The scan is structured as an ordered chain of per-script slices. Each slice
+consumes only its own SQL text snapshot (see :class:`~lineage_inquest.models.
+ScriptSlice`) and the :class:`~lineage_inquest.models.SliceState` handed in by
+the previous slice, which makes any individual script independently
+replayable via :func:`replay_slices` / :func:`replay_scan` without rerunning
+the whole scan. The regular :func:`scan` entry point is itself a single replay
+of the full chain, so both paths share exactly one implementation.
+"""
 
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,12 +28,15 @@ from .graph.build import build_graph
 from .graph.query import detect_cycles
 from .graph.stable import content_hash
 from .models import (
-    ColumnMapping,
     Finding,
+    Replay,
     ScanResult,
+    ScriptSlice,
+    SliceSnapshot,
+    SliceState,
     StatementInfo,
-    TableDef,
     Unsupported,
+    _snapshot_payload,
 )
 from .parser import parse_unit
 from .parser.ddl import DdlResult, handle_ddl
@@ -46,83 +59,225 @@ def _read(path: Path) -> str:
         raise ConfigError(f"cannot read UTF-8 SQL file {path}: {exc}") from exc
 
 
-def _timestamp(config: Config, frozen_time: str | None) -> str:
+def scan_timestamp(config: Config, frozen_time: str | None) -> str:
     fixed = parse_frozen_time(frozen_time) or config.frozen_time
     if fixed:
         return fixed
     return datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
-    contracts = load_contracts(config.contracts_dir, config.default_schema)
-    sql_files = _files(config.sql_dir, ".sql")
-    contract_files = [
-        path for path in _files(config.contracts_dir, ".yaml") + _files(config.contracts_dir, ".yml")
-    ]
-    digest_parts = []
+@dataclass(frozen=True)
+class ScanInputs:
+    """Filesystem snapshot and content identity for one scan configuration."""
+
+    sql_files: tuple[Path, ...]
+    contract_files: tuple[Path, ...]
+    digest_parts: tuple[dict[str, str], ...]
+    input_digest: str
+
+
+def load_scan_inputs(config: Config) -> ScanInputs:
+    """Read every SQL/contract text once and derive the content digest.
+
+    The digest covers the full ordered set of SQL and contract texts, so it is
+    independent of how the scan is later sliced or replayed.
+    """
+    sql_files = tuple(_files(config.sql_dir, ".sql"))
+    contract_files = tuple(
+        sorted(
+            _files(config.contracts_dir, ".yaml") + _files(config.contracts_dir, ".yml"),
+            key=lambda path: path.as_posix(),
+        )
+    )
+    digest_parts: list[dict[str, str]] = []
     for path in sql_files:
         digest_parts.append(
             {"kind": "sql", "path": path.relative_to(config.sql_dir).as_posix(), "text": _read(path)}
         )
-    for path in sorted(contract_files, key=lambda p: p.as_posix()):
+    for path in contract_files:
         digest_parts.append(
-            {"kind": "contract", "path": path.relative_to(config.contracts_dir).as_posix(), "text": _read(path)}
+            {
+                "kind": "contract",
+                "path": path.relative_to(config.contracts_dir).as_posix(),
+                "text": _read(path),
+            }
         )
-    input_digest = content_hash(digest_parts)
-    generated_at = _timestamp(config, frozen_time)
-    run_id = "run-" + content_hash(
+    return ScanInputs(
+        sql_files=sql_files,
+        contract_files=contract_files,
+        digest_parts=tuple(digest_parts),
+        input_digest=content_hash(digest_parts),
+    )
+
+
+def build_slices(config: Config, sql_files: tuple[Path, ...] | list[Path]) -> tuple[ScriptSlice, ...]:
+    """Turn the ordered SQL files into self-contained replayable slices."""
+    slices: list[ScriptSlice] = []
+    for index, path in enumerate(sql_files):
+        relative = path.relative_to(config.sql_dir).as_posix()
+        slices.append(ScriptSlice(index=index, script=relative, path=str(path), text=_read(path)))
+    return tuple(slices)
+
+
+def make_run_id(input_digest: str, config: Config, generated_at: str) -> str:
+    """run_id is derived solely from input contents, config, and the timestamp."""
+    return "run-" + content_hash(
         {"input": input_digest, "config": config.digest, "at": generated_at}
     )[:12]
 
-    schema: dict[str, TableDef] = {}
-    known: dict[str, TableDef] = {}
-    mappings: list[ColumnMapping] = []
-    unsupported: list[Unsupported] = []
-    statements: list[StatementInfo] = []
-    drafts: list[FindingDraft] = []
 
-    for path in sql_files:
-        relative = path.relative_to(config.sql_dir).as_posix()
-        for unit in split_sql(_read(path), relative):
-            ast = parse_unit(unit)
-            kind = statement_kind(ast)
-            issues = guard_ast(unit, ast)
-            if issues:
-                unsupported.extend(issues)
-                statements.append(
-                    StatementInfo(relative, unit.line, unit.index, kind, "unsupported", issues[0].construct)
+def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
+    inputs = load_scan_inputs(config)
+    generated_at = scan_timestamp(config, frozen_time)
+    run_id = make_run_id(inputs.input_digest, config, generated_at)
+    contracts = load_contracts(config.contracts_dir, config.default_schema)
+    replay = replay_slices(config, build_slices(config, inputs.sql_files), SliceState())
+    return assemble_scan_result(
+        config, replay, contracts, inputs.input_digest, run_id, generated_at
+    )
+
+
+def replay_scan(config: Config, frozen_time: str | None = None) -> Replay:
+    """Replay the whole slice chain from a pristine state.
+
+    Independent calls always return equal per-slice snapshots and the same
+    ``input_digest`` / ``run_id`` as a regular :func:`scan` of the same
+    configuration.
+    """
+    inputs = load_scan_inputs(config)
+    generated_at = scan_timestamp(config, frozen_time)
+    run_id = make_run_id(inputs.input_digest, config, generated_at)
+    replay = replay_slices(config, build_slices(config, inputs.sql_files), SliceState())
+    return Replay(
+        input_digest=inputs.input_digest,
+        run_id=run_id,
+        slices=replay.slices,
+        snapshots=replay.snapshots,
+        state=replay.state,
+    )
+
+
+def replay_slices(
+    config: Config,
+    slices: tuple[ScriptSlice, ...] | list[ScriptSlice],
+    state: SliceState,
+) -> Replay:
+    """Replay an ordered chain of slices, threading state between them.
+
+    Each slice only reads its embedded SQL text snapshot and the incoming
+    ``state``; the filesystem is not touched. Snapshots are captured after
+    every slice. Replaying the same slices against an equal incoming state is
+    deterministic.
+    """
+    snapshots: list[SliceSnapshot] = []
+    ordered = tuple(slices)
+    for slice_item in ordered:
+        _replay_slice(config, slice_item, state)
+        # Capture a detached copy: snapshots are immutable checkpoints and
+        # must keep observing later slices from mutating them.
+        snapshots.append(
+            SliceSnapshot.capture(slice_item.index, slice_item.script, state.clone())
+        )
+    return Replay(
+        input_digest="",
+        run_id="",
+        slices=ordered,
+        snapshots=tuple(snapshots),
+        state=state,
+    )
+
+
+def _replay_slice(config: Config, slice_item: ScriptSlice, state: SliceState) -> None:
+    for unit in split_sql(slice_item.text, slice_item.script):
+        _replay_unit(config, unit, state)
+
+
+def replay_one_slice(
+    config: Config,
+    slice_item: ScriptSlice,
+    state: SliceState,
+) -> SliceSnapshot:
+    """Replay a single script slice against an incoming state.
+
+    This is the smallest independently callable replay unit: pass the
+    snapshot state produced by the upstream slice (or a fresh
+    :class:`SliceState` for the first script) and get back the immutable
+    checkpoint after this script. The incoming state is cloned first, so the
+    caller's copy is never mutated. Repeating the call with equal inputs
+    always yields an equal snapshot and state digest.
+    """
+    working = state.clone()
+    _replay_slice(config, slice_item, working)
+    return SliceSnapshot.capture(slice_item.index, slice_item.script, working)
+
+
+def _replay_unit(config: Config, unit, state: SliceState) -> None:
+    ast = parse_unit(unit)
+    kind = statement_kind(ast)
+    issues = guard_ast(unit, ast)
+    if issues:
+        state.unsupported.extend(issues)
+        state.statements.append(
+            StatementInfo(unit.script, unit.line, unit.index, kind, "unsupported", issues[0].construct)
+        )
+        return
+    if isinstance(ast, (exp.Create, exp.Drop, exp.Alter)):
+        outcome = handle_ddl(unit, ast, state.schema, state.known, config.default_schema)
+    elif isinstance(ast, (exp.Insert, exp.Merge)):
+        outcome = handle_produce(unit, ast, state.schema, config.default_schema)
+    elif isinstance(ast, exp.Select):
+        outcome = None
+    else:
+        outcome = None
+        state.unsupported.append(
+            _unsupported(unit, "unsupported_statement", "statement type is not supported")
+        )
+    if outcome is not None:
+        state.mappings.extend(outcome.mappings)
+        state.unsupported.extend(outcome.issues)
+        if isinstance(outcome, DdlResult):
+            for table, old_locations in outcome.redefined:
+                previous = ", ".join(f"{script}:{line}" for script, line in old_locations)
+                state.drafts.append(
+                    FindingDraft(
+                        "table_redefined",
+                        table,
+                        "table is defined more than once",
+                        f"redefined at {unit.script}:{unit.line}; previous: {previous}",
+                        unit.script,
+                        unit.line,
+                    )
                 )
-                continue
-            if isinstance(ast, (exp.Create, exp.Drop, exp.Alter)):
-                outcome = handle_ddl(unit, ast, schema, known, config.default_schema)
-            elif isinstance(ast, (exp.Insert, exp.Merge)):
-                outcome = handle_produce(unit, ast, schema, config.default_schema)
-            elif isinstance(ast, exp.Select):
-                outcome = None
-            else:
-                outcome = None
-                unsupported.append(_unsupported(unit, "unsupported_statement", "statement type is not supported"))
-            if outcome is not None:
-                mappings.extend(outcome.mappings)
-                unsupported.extend(outcome.issues)
-                if isinstance(outcome, DdlResult):
-                    for table, old_locations in outcome.redefined:
-                        previous = ", ".join(f"{script}:{line}" for script, line in old_locations)
-                        drafts.append(
-                            FindingDraft(
-                                "table_redefined",
-                                table,
-                                "table is defined more than once",
-                                f"redefined at {unit.script}:{unit.line}; previous: {previous}",
-                                unit.script,
-                                unit.line,
-                            )
-                        )
-            parser_issues = outcome.issues if outcome is not None else []
-            reason = "unsupported construct" if parser_issues else ""
-            statements.append(StatementInfo(relative, unit.line, unit.index, kind, "unsupported" if parser_issues else "supported", reason))
+    parser_issues = outcome.issues if outcome is not None else []
+    reason = "unsupported construct" if parser_issues else ""
+    state.statements.append(
+        StatementInfo(
+            unit.script,
+            unit.line,
+            unit.index,
+            kind,
+            "unsupported" if parser_issues else "supported",
+            reason,
+        )
+    )
 
-    graph = build_graph(known, mappings)
+
+def assemble_scan_result(
+    config: Config,
+    replay: Replay,
+    contracts: list,
+    input_digest: str,
+    run_id: str,
+    generated_at: str,
+) -> ScanResult:
+    """Graph build, contract comparison and finding finalization.
+
+    Runs once, after the full slice chain. unsupported items and statements
+    are therefore sorted/deduplicated globally -- never per slice.
+    """
+    state = replay.state
+    drafts: list[FindingDraft] = list(state.drafts)
+    graph = build_graph(state.known, state.mappings)
     for cycle in detect_cycles(graph):
         drafts.append(
             FindingDraft(
@@ -135,7 +290,7 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
             )
         )
     drafts.extend(compare_contracts(graph, contracts))
-    for item in unsupported:
+    for item in state.unsupported:
         drafts.append(
             FindingDraft(
                 "unsupported_sql",
@@ -148,9 +303,10 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
         )
 
     findings = _finalize_findings(drafts, config)
-    unsupported.sort(key=lambda item: (item.script, item.line, item.construct, item.reason))
-    unsupported = _dedupe_unsupported(unsupported)
-    statements.sort(key=lambda item: (item.script, item.line, item.index))
+    unsupported = _dedupe_unsupported(
+        sorted(state.unsupported, key=lambda item: (item.script, item.line, item.construct, item.reason))
+    )
+    statements = sorted(state.statements, key=lambda item: (item.script, item.line, item.index))
     summary = _summary(graph, statements, unsupported, findings)
     return ScanResult(
         project=config.project,
@@ -166,6 +322,29 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
         severity_overrides=dict(config.severity_overrides),
         summary=summary,
     )
+
+
+def replay_to_scan_result(
+    config: Config,
+    replay: Replay,
+    frozen_time: str | None = None,
+) -> ScanResult:
+    """Finalize a replay (e.g. a partial one) into the standard ScanResult."""
+    if not replay.input_digest:
+        raise ValueError("replay must carry the scan-level input_digest before finalization")
+    contracts = load_contracts(config.contracts_dir, config.default_schema)
+    generated_at = scan_timestamp(config, frozen_time)
+    run_id = replay.run_id or make_run_id(replay.input_digest, config, generated_at)
+    return assemble_scan_result(
+        config, replay, contracts, replay.input_digest, run_id, generated_at
+    )
+
+
+def snapshot_payload(snapshot: SliceSnapshot) -> dict:
+    """Stable JSON representation of an intermediate state snapshot."""
+    payload = _snapshot_payload(snapshot.index, snapshot.script, snapshot.state)
+    payload["state_digest"] = snapshot.state_digest
+    return payload
 
 
 def _unsupported(unit, construct: str, reason: str) -> Unsupported:

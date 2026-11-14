@@ -46,7 +46,7 @@ python -m pip install --no-index --find-links wheels -r requirements.txt
 
 安装过程不使用网络。若本机已具备上述精确版本，也可直接运行。
 
-### 五条命令
+### 六条命令
 
 ```bash
 # 1. 幂等生成合成演示数据；重复执行会得到相同字节
@@ -58,16 +58,29 @@ python -m lineage_inquest scan --config fixtures/demo/config.yaml
 # 3. 扫描负样本并核对 findings 期望快照（不一致时退出码 1）
 python -m lineage_inquest verify --config fixtures/broken/config.yaml
 
-# 4. 启动只读本地查看服务（仅 127.0.0.1，默认端口 5000）
+# 4. 按脚本切片重放：每个 SQL 脚本是一个独立片段，片段间只传递
+#    schema/known/mappings/unsupported/statements/drafts 状态，并对每段
+#    独立重放两次，校验中间状态快照一致
+python -m lineage_inquest replay --config fixtures/demo/config.yaml
+
+# 5. 启动只读本地查看服务（仅 127.0.0.1，默认端口 5000）
 python -m lineage_inquest serve --config fixtures/demo/config.yaml
 
-# 5. 运行离线测试（测试内置外网阻断）
+# 6. 运行离线测试（测试内置外网阻断）
 pytest -q
 ```
 
 `scan` / `verify` 支持 `--out` 覆盖输出目录、`--frozen-time` 固定报告与台账
 时间。`verify` 还可用 `--expect` 指定 findings 快照；未指定时依次使用配置中的
 `expect_findings` 或配置目录下的 `expected/findings.json`。
+
+`replay` 把扫描在脚本边界切成有序片段，每段只消费自身的 SQL 文本快照与上游
+片段传入的状态，并在每段结束后写出不可变的中间状态快照（含
+`state_digest`）。产物写在 `<out>/replay/`：`snapshots.json` 记录每段快照；
+全链路重放时额外写出与 `scan` 字节一致的 `graph.json` 与 `findings.json`。
+可用 `--slices 0 2` 只重放指定片段（此时仅写快照）。`input_digest` 与
+`run_id` 仍由全体 SQL 与契约文本、配置和时间决定，与切片顺序、重放次数无关；
+unsupported 与 statements 仍在全链路汇总后统一排序/去重，片段内不提前处理。
 
 `serve` 通过已有台账读数据，不会重新扫描。可用 `--host` / `--port` 覆盖配置，
 但 host 必须严格等于 `127.0.0.1`，否则拒绝启动并打印原因。

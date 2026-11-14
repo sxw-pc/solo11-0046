@@ -11,9 +11,20 @@ from .config import Config, load_config, parse_frozen_time, validate_host
 from .errors import ConfigError, NotFoundError
 from .graph.query import downstream, upstream
 from .graph.stable import stable_json
-from .report.json_out import findings_payload
+from .models import Replay, SliceState
+from .report.json_out import findings_json, findings_payload, graph_json
 from .report.writer import write_artifacts, write_text
-from .scanner import scan
+from .scanner import (
+    build_slices,
+    load_scan_inputs,
+    make_run_id,
+    replay_one_slice,
+    replay_slices,
+    replay_to_scan_result,
+    scan,
+    scan_timestamp,
+    snapshot_payload,
+)
 from .seed import seed
 from .store import LedgerStore
 
@@ -34,6 +45,20 @@ def build_parser() -> argparse.ArgumentParser:
     _config_arg(scan_parser)
     scan_parser.add_argument("--out", help="override output directory")
     _frozen_arg(scan_parser)
+
+    replay_parser = sub.add_parser(
+        "replay",
+        help="replay the scan one SQL script slice at a time with state snapshots",
+    )
+    _config_arg(replay_parser)
+    replay_parser.add_argument("--out", help="override output directory")
+    _frozen_arg(replay_parser)
+    replay_parser.add_argument(
+        "--slices",
+        type=int,
+        nargs="*",
+        help="only replay these zero-based slice indexes (default: the whole chain)",
+    )
 
     verify_parser = sub.add_parser("verify", help="scan and compare findings with a snapshot")
     _config_arg(verify_parser)
@@ -102,6 +127,80 @@ def _run_scan(args, config: Config):
     ledger = out / "ledger.sqlite"
     LedgerStore(ledger).write_scan(result)
     return result, artifacts, ledger
+
+
+def _do_replay(args, config: Config) -> int:
+    frozen = parse_frozen_time(args.frozen_time) if args.frozen_time else None
+    inputs = load_scan_inputs(config)
+    all_slices = build_slices(config, inputs.sql_files)
+    if args.slices:
+        indexes = set(args.slices)
+        unknown = sorted(indexes - set(range(len(all_slices))))
+        if unknown:
+            raise ConfigError(
+                f"unknown slice index(es): {', '.join(str(i) for i in unknown)}; "
+                f"this config has {len(all_slices)} slice(s)"
+            )
+        slices = tuple(all_slices[index] for index in sorted(indexes))
+        partial = indexes != set(range(len(all_slices)))
+    else:
+        slices = all_slices
+        partial = False
+    generated_at = scan_timestamp(config, frozen)
+    run_id = make_run_id(inputs.input_digest, config, generated_at)
+
+    # First pass: replay the ordered chain, threading state across slices.
+    first = replay_slices(config, slices, SliceState())
+    # Second pass: replay each slice independently from a fresh copy of the
+    # state its predecessor produced. Identical per-slice state_digest values
+    # prove every script boundary is individually reproducible.
+    second_snapshots = []
+    incoming = SliceState()
+    for slice_item in slices:
+        snapshot = replay_one_slice(config, slice_item, incoming)
+        second_snapshots.append(snapshot)
+        incoming = snapshot.state
+    first_digests = [snap.state_digest for snap in first.snapshots]
+    second_digests = [snap.state_digest for snap in second_snapshots]
+    if first_digests != second_digests:
+        raise ConfigError("replay is not deterministic: repeated slice states differ")
+
+    out = _out(args, config) / "replay"
+    write_text(
+        out / "snapshots.json",
+        stable_json(
+            {
+                "version": 1,
+                "project": config.project,
+                "input_digest": inputs.input_digest,
+                "run_id": run_id,
+                "generated_at": generated_at,
+                "slices": [
+                    {"index": item.index, "script": item.script, "path": item.path}
+                    for item in first.slices
+                ],
+                "snapshots": [snapshot_payload(snap) for snap in first.snapshots],
+            }
+        ),
+    )
+    print(f"replay {run_id}: {len(first.slices)} slice(s), each replayed twice with identical state")
+    for snap in first.snapshots:
+        print(f"  slice {snap.index}: {snap.script} state={snap.state_digest[:12]}")
+    if not partial:
+        full_replay = Replay(
+            input_digest=inputs.input_digest,
+            run_id=run_id,
+            slices=first.slices,
+            snapshots=first.snapshots,
+            state=first.state,
+        )
+        result = replay_to_scan_result(config, full_replay, frozen)
+        write_text(out / "graph.json", graph_json(result))
+        write_text(out / "findings.json", findings_json(result))
+        print(f"replay artifacts: {out}")
+    else:
+        print(f"partial replay artifacts (snapshots only): {out}")
+    return EXIT_OK
 
 
 def _do_verify(args, config: Config) -> int:
@@ -210,6 +309,8 @@ def main(argv: list[str] | None = None) -> int:
             result, artifacts, ledger = _run_scan(args, config)
             _print_scan(result, artifacts, ledger)
             return EXIT_OK
+        if args.command == "replay":
+            return _do_replay(args, config)
         if args.command == "verify":
             return _do_verify(args, config)
         if args.command == "serve":

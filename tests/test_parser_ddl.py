@@ -24,7 +24,10 @@ def test_ddl_columns_constraints_and_types(project_factory):
     primary = p.node(result, "raw.accounts.id")
     assert primary.primary_key is True
     assert primary.nullable is False
-    assert p.node(result, "raw.accounts.qty").assertions == ("range:[0,10]",)
+    qty = p.node(result, "raw.accounts.qty")
+    (qty_range,) = qty.assertions
+    assert str(qty_range) == "range:[0,10]"
+    assert qty_range.lower.inclusive and qty_range.upper.inclusive
     assert p.node(result, "raw.accounts.note").nullable is True
 
 

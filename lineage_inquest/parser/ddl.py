@@ -3,10 +3,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from decimal import Decimal
 
 from sqlglot import exp
 
-from ..models import ColumnDef, ColumnMapping, SqlUnit, TableDef, Unsupported
+from ..models import (
+    Assertion,
+    Bound,
+    ColumnDef,
+    ColumnMapping,
+    RangeAssertion,
+    SqlUnit,
+    TableDef,
+    Unsupported,
+    assertion_key,
+)
 from ..naming import canonical_table, clean_ident
 from ..sqltext import locate_line, snippet
 from .guard import issue as guard_issue
@@ -100,6 +111,10 @@ def _create(unit, ast: exp.Create, schema, known, default_schema) -> DdlResult:
             elif isinstance(column, exp.Constraint):
                 for primary in column.find_all(exp.PrimaryKey):
                     _apply_table_primary_key(definition, primary)
+                for check in column.find_all(exp.CheckColumnConstraint):
+                    _apply_table_check(definition, check.this)
+            elif isinstance(column, exp.CheckColumnConstraint):
+                _apply_table_check(definition, column.this)
 
     if old is not None:
         result.redefined.append((name, list(old.locations)))
@@ -114,7 +129,8 @@ def _column(column: exp.ColumnDef) -> ColumnDef:
     data_type = data_type_text(column.kind) if column.kind else "unknown"
     primary_key = False
     nullable = True
-    assertions: set[str] = set()
+    assertions: set[Assertion] = set()
+    ranges: list[RangeAssertion] = []
     for constraint in column.constraints or []:
         kind = constraint.kind
         if isinstance(kind, exp.PrimaryKeyColumnConstraint):
@@ -132,14 +148,16 @@ def _column(column: exp.ColumnDef) -> ColumnDef:
         elif isinstance(kind, exp.CheckColumnConstraint):
             found = _check_range(kind.this, name)
             if found:
-                assertions.add(found)
+                ranges.append(found)
+    if ranges:
+        assertions.add(_combine(ranges))
     return ColumnDef(
         name=name,
         data_type=data_type,
         primary_key=primary_key,
         nullable=nullable,
         derived=False,
-        assertions=tuple(sorted(assertions)),
+        assertions=_ordered(assertions),
     )
 
 
@@ -149,7 +167,6 @@ def _apply_table_primary_key(definition: TableDef, node: exp.PrimaryKey) -> None
         current = definition.columns.get(name)
         if current is None:
             continue
-        assertions = sorted(set(current.assertions) | {"not_null", "unique"})
         definition.add(
             ColumnDef(
                 current.name,
@@ -157,27 +174,126 @@ def _apply_table_primary_key(definition: TableDef, node: exp.PrimaryKey) -> None
                 True,
                 False,
                 current.derived,
-                tuple(assertions),
+                _merge_assertion(current.assertions, "not_null", "unique"),
             )
         )
 
 
-def _check_range(check: exp.Expression, column: str) -> str | None:
-    lower: str | None = None
-    upper: str | None = None
-    for node in check.find_all(exp.GTE, exp.GT, exp.LTE, exp.LT):
-        left, right = node.this, node.expression
-        if not isinstance(left, exp.Column) or clean_ident(left.name) != column:
+def _apply_table_check(definition: TableDef, check: exp.Expression) -> None:
+    """Apply a table-level CHECK to every column it constrains."""
+    names = {clean_ident(node.name) for node in check.find_all(exp.Column)}
+    for name in sorted(names):
+        current = definition.columns.get(name)
+        if current is None:
             continue
-        if not isinstance(right, exp.Literal) or right.is_string:
+        found = _check_range(check, name)
+        if found is None:
             continue
-        if isinstance(node, (exp.GTE, exp.GT)):
-            lower = right.this
-        else:
-            upper = right.this
-    if lower is not None and upper is not None:
-        return f"range:[{lower},{upper}]"
+        definition.add(
+            ColumnDef(
+                current.name,
+                current.data_type,
+                current.primary_key,
+                current.nullable,
+                current.derived,
+                _merge_assertion(current.assertions, found),
+            )
+        )
+
+
+def _check_range(check: exp.Expression, column: str) -> RangeAssertion | None:
+    """Normalize numeric comparisons against ``column`` into one range."""
+    found: list[RangeAssertion] = []
+    for node in _conjuncts(check):
+        partial = _comparison_range(node, column)
+        if partial is not None:
+            found.append(partial)
+    if not found:
+        return None
+    return _combine(found)
+
+
+def _conjuncts(node: exp.Expression):
+    """Yield the top-level AND operands, looking through parentheses."""
+    while isinstance(node, exp.Paren):
+        node = node.this
+    if isinstance(node, exp.And):
+        yield from _conjuncts(node.this)
+        yield from _conjuncts(node.expression)
+    else:
+        yield node
+
+
+def _comparison_range(node: exp.Expression, column: str) -> RangeAssertion | None:
+    if isinstance(node, exp.Between):
+        if not _is_column(node.this, column):
+            return None
+        low = _numeric_value(node.args.get("low"))
+        high = _numeric_value(node.args.get("high"))
+        if low is None or high is None:
+            return None
+        return RangeAssertion(Bound(low, True), Bound(high, True))
+    upper_ops = (exp.GTE, exp.GT)
+    if not isinstance(node, (exp.GTE, exp.GT, exp.LTE, exp.LT)):
+        return None
+    inclusive = isinstance(node, (exp.GTE, exp.LTE))
+    left, right = node.this, node.expression
+    if _is_column(left, column):
+        value = _numeric_value(right)
+        if value is None:
+            return None
+        if isinstance(node, upper_ops):
+            return RangeAssertion(lower=Bound(value, inclusive))
+        return RangeAssertion(upper=Bound(value, inclusive))
+    if _is_column(right, column):
+        value = _numeric_value(left)
+        if value is None:
+            return None
+        # ``literal < col`` is a lower bound (and vice versa).
+        if isinstance(node, upper_ops):
+            return RangeAssertion(upper=Bound(value, inclusive))
+        return RangeAssertion(lower=Bound(value, inclusive))
     return None
+
+
+def _is_column(node: exp.Expression | None, column: str) -> bool:
+    return isinstance(node, exp.Column) and clean_ident(node.name) == column
+
+
+def _numeric_value(node: exp.Expression | None) -> Decimal | None:
+    sign = 1
+    if isinstance(node, exp.Neg):
+        sign = -1
+        node = node.this
+    if not isinstance(node, exp.Literal) or node.is_string:
+        return None
+    try:
+        return sign * Decimal(node.this)
+    except ArithmeticError:
+        return None
+
+
+def _combine(ranges: list[RangeAssertion]) -> RangeAssertion:
+    combined = ranges[0]
+    for item in ranges[1:]:
+        combined = combined.intersect(item)
+    return combined
+
+
+def _ordered(values) -> tuple[Assertion, ...]:
+    return tuple(sorted(set(values), key=assertion_key))
+
+
+def _merge_assertion(assertions: tuple[Assertion, ...], *values: Assertion) -> tuple[Assertion, ...]:
+    merged = list(assertions)
+    for value in values:
+        if isinstance(value, RangeAssertion):
+            existing = [item for item in merged if isinstance(item, RangeAssertion)]
+            merged = [item for item in merged if not isinstance(item, RangeAssertion)]
+            merged.append(_combine(existing + [value]))
+        else:
+            merged.append(value)
+    return _ordered(merged)
 
 
 def _drop(ast: exp.Drop, schema, default_schema) -> DdlResult:

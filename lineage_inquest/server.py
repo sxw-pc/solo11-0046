@@ -13,6 +13,7 @@ from .config import Config
 from .errors import NotFoundError
 from .graph.build import edge_payload
 from .graph.query import downstream, upstream
+from .models import assertion_payload
 from .store import LedgerStore
 
 _RUN = re.compile(r"^run-[0-9a-f]{12}$")
@@ -191,12 +192,13 @@ def _query_context(store: LedgerStore, node: str):
 
 
 def _page(title: str, body: str, run_id: str | None = None) -> str:
+    graph_link = '<a href="/api/graph">Graph JSON</a>' if run_id else ""
     return (
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
         f"<title>{escape(title)} · Lineage Inquest</title><style>{_STYLE}</style></head><body>"
         "<header><h1>Lineage Inquest · read-only</h1></header>"
         f"<nav><a href=\"/\">Overview</a><a href=\"/findings\">Findings</a>"
-        f"{'<a href=\"/api/graph\">Graph JSON</a>' if run_id else ''}</nav>"
+        f"{graph_link}</nav>"
         f"<main>{body}</main></body></html>"
     )
 
@@ -234,5 +236,5 @@ def _node_for_api(node) -> dict:
         "nullable": node.nullable,
         "primary_key": node.primary_key,
         "origin": node.origin,
-        "assertions": list(node.assertions),
+        "assertions": [assertion_payload(item) for item in node.assertions],
     }

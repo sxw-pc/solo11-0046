@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from ..models import Contract, Graph
+from ..models import Contract, Graph, RangeAssertion
 from .classify import FindingDraft
 
 _FAMILIES = {
@@ -111,15 +111,67 @@ def compare_contracts(graph: Graph, contracts: list[Contract]) -> list[FindingDr
                     contract.source,
                 )
             )
-        missing_assertions = sorted(set(contract.assertions) - set(node.assertions))
-        if missing_assertions:
+        failures: list[str] = []
+        missing_scalar = sorted(
+            str(item)
+            for item in set(contract.assertions) - set(node.assertions)
+            if not isinstance(item, RangeAssertion)
+        )
+        if missing_scalar:
+            failures.append("missing assertions: " + ", ".join(missing_scalar))
+        declared_ranges = [item for item in contract.assertions if isinstance(item, RangeAssertion)]
+        actual_ranges = [item for item in node.assertions if isinstance(item, RangeAssertion)]
+        if declared_ranges:
+            # Several CHECK constraints on one column all hold, so the actual
+            # interval is their intersection.
+            actual = actual_ranges[0] if actual_ranges else None
+            for item in actual_ranges[1:]:
+                actual = actual.intersect(item)
+            uncovered = [item for item in declared_ranges if actual is None or not actual.covers(item)]
+            for declared_range in uncovered:
+                gaps = _coverage_gaps(declared_range, actual)
+                failures.append(
+                    f"range not covered; declared {str(declared_range)}; "
+                    f"actual {_actual_range_text(actual)}; {gaps}"
+                )
+        if failures:
             drafts.append(
                 FindingDraft(
                     "assertion_mismatch",
                     target,
                     "declared assertions are not present in DDL/static metadata",
-                    "missing assertions: " + ", ".join(missing_assertions),
+                    "; ".join(failures),
                     contract.source,
                 )
             )
     return drafts
+
+
+def _actual_range_text(actual: RangeAssertion | None) -> str:
+    if actual is None:
+        return "no numeric CHECK"
+    return str(actual)
+
+
+def _coverage_gaps(declared: RangeAssertion, actual: RangeAssertion | None) -> str:
+    """Describe the endpoints the actual CHECK does not guarantee."""
+    if actual is None:
+        return "no CHECK constrains this column"
+    gaps = []
+    if declared.lower is not None and not actual.covers_lower(declared.lower):
+        if actual.lower is None:
+            gaps.append(f"missing lower bound {declared.lower.text}")
+        else:
+            gaps.append(
+                f"lower bound {actual.lower.text} is tighter"
+                f"{'' if actual.lower.inclusive else ' (open)'} than declared {declared.lower.text}"
+            )
+    if declared.upper is not None and not actual.covers_upper(declared.upper):
+        if actual.upper is None:
+            gaps.append(f"missing upper bound {declared.upper.text}")
+        else:
+            gaps.append(
+                f"upper bound {actual.upper.text} is tighter"
+                f"{'' if actual.upper.inclusive else ' (open)'} than declared {declared.upper.text}"
+            )
+    return "; ".join(gaps)

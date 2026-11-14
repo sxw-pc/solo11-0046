@@ -9,6 +9,7 @@ from ..models import (
     Graph,
     Node,
     TableDef,
+    assertion_payload,
 )
 from ..naming import column_of, table_of
 from .stable import edge_id, node_id
@@ -77,7 +78,7 @@ def node_payload(node: Node) -> dict:
         "nullable": node.nullable,
         "primary_key": node.primary_key,
         "origin": node.origin,
-        "assertions": list(node.assertions),
+        "assertions": [assertion_payload(item) for item in node.assertions],
     }
 
 

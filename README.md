@@ -123,7 +123,7 @@ pytest -q
 | `required_upstream` | 否 | 允许的直接上游列白名单；空表示不检查缺失 |
 | `forbidden_upstream` | 否 | 禁止的直接上游；与 required 重合会报配置错误 |
 | `expected_type` | 否 | 期望类型；支持 `integer`/`numeric`/`string`/`boolean`/`date`/`timestamp` 家族、`any`/`*` 或精确类型文本 |
-| `assertions` | 否 | 静态断言列表：`not_null`、`unique`、`range:[min,max]`（范围建议写成带引号字符串） |
+| `assertions` | 否 | 静态断言列表：`not_null`、`unique`、`range:[min,max]`（范围建议写成带引号字符串；方括号保留开闭端点） |
 | `description` | 否 | 仅供人工阅读，不参与比对 |
 
 完整合成示例：
@@ -156,8 +156,18 @@ contracts:
 - target 不在图中、或必需来源缺失，产生 `missing_upstream`。
 - `expected_type` 与静态推导/DDL 类型按类型家族或精确文本比较，不符时产生
   `type_mismatch`。
-- `assertions` 必须已经出现在目标列的 DDL 静态元数据中；CTAS 派生列默认没有
-  断言，会因此产生 `assertion_mismatch`。**不校验数据。**
+- `assertions` 中的 `not_null`、`unique` 按字符串严格相等比较，必须已经出现在
+  目标列的 DDL 静态元数据中；CTAS 派生列默认没有断言，会因此产生
+  `assertion_mismatch`。**不校验数据。**
+- `range:...` 断言会归一化为结构化数值区间。DDL 里的列级和表级 `CHECK` 都参与
+  解析：`col BETWEEN a AND b`、`col >= a AND col <= b`（含 `>`/`<` 开区间、
+  `a <= col` 反向写法、括号分组、多个 CHECK 的交集）以及单侧上下界都会被识别。
+  端点保留开闭语义、负数和 `DECIMAL` 精度（`0.50` 不会被压成 `0.5`）。
+- 区间比对采用**包含判定**：只有当实际 CHECK 允许的取值范围完全覆盖契约声明
+  的区间时才通过。实际更紧、只有单侧界、完全没有 CHECK 都会产生
+  `assertion_mismatch`，detail 会同时给出 `declared` 与 `actual` 区间以及未覆盖
+  的端点。声明 `range:[10,90]` 而 DDL 为 `CHECK (amount >= 0 AND amount < 50)`
+  时会报告 actual 的上下界都比声明更紧，而不再是比较抹平了开闭差异的字符串。
 - finding ID 由类别、目标和详情内容哈希生成；内容相同的 finding 会去重。
 - 七类 finding 的默认严重级别为：`missing_upstream=error`、
   `unexpected_upstream=warn`、`type_mismatch=error`、
@@ -178,7 +188,9 @@ contracts:
 - `table`、`column`；
 - `data_type`、`nullable`、`primary_key`；
 - `origin`：`ddl`、`derived` 或 `referenced`；
-- `assertions`：静态断言列表。
+- `assertions`：静态断言列表。`not_null`/`unique` 为字符串；数值范围为结构化
+  对象 `{"kind": "range", "lower": {"value": "0.00", "inclusive": true},
+  "upper": {"value": "50.75", "inclusive": false}}`，单侧界对应的端点为 `null`。
 
 `edges` 每项含：
 
@@ -247,7 +259,9 @@ HTML 使用内联 CSS、无 JavaScript、无外链、无 CDN，可直接离线�
   不进行部分推断。
 - `SELECT *` 依赖已解析的来源表结构；来源未知或列不可确定时记 unsupported。
 - 类型信息来自 DDL 或有限的静态推导；复杂表达式可能得到 `unknown`。
-- CTAS 派生列不继承源列断言；这会有意触发 assertion 缺失，而不是猜测。
+- CTAS 派生列不继承源列断言，断言保持为空；这会有意触发 assertion 缺失，而不是猜测。
+- 数值范围只解析 `CHECK` 中与单个列比较的字面量边界。`<>`、`OR`、`NOT BETWEEN`
+  等无法归一化为单一区间的表达式不产生范围断言，也不会被猜测为满足契约。
 - 顺序模型只按相对文件名和文件内行号执行，不分析跨文件控制流、宏或模板。
 - 重复建表以后一个定义建模，同时产生 `table_redefined`；DROP 只影响后续语句。
 - 环检测按字段级 SCC 报告；环中的 finding target 为字典序最小的字段。

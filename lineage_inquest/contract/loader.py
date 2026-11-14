@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import yaml
 
 from ..errors import ConfigError
-from ..models import Contract
+from ..models import Assertion, Contract, assertion_key, parse_range_text
 from ..naming import canonical_ref
 
-_ASSERTION = re.compile(r"^range:\[(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)\]$")
 _ALLOWED = {
     "target",
     "required_upstream",
@@ -22,16 +20,16 @@ _ALLOWED = {
 }
 
 
-def normalize_assertion(value: str) -> str:
+def normalize_assertion(value: str) -> Assertion:
     value = value.strip()
     if value in {"not_null", "unique"}:
         return value
-    match = _ASSERTION.match(value)
-    if not match:
+    parsed = parse_range_text(value)
+    if parsed is None:
         raise ConfigError(
             f"invalid assertion {value!r}; expected not_null, unique, or range:[min,max]"
         )
-    return f"range:[{match.group(1)},{match.group(2)}]"
+    return parsed
 
 
 def _reference_list(raw, key: str, default_schema: str, source: Path) -> tuple[str, ...]:
@@ -108,7 +106,7 @@ def _contract(item, default_schema: str, source: str, index: int) -> Contract:
     raw_assertions = item.get("assertions", [])
     if not isinstance(raw_assertions, list):
         raise ConfigError(f"{where}: assertions must be a list")
-    assertions: list[str] = []
+    assertions: list[Assertion] = []
     for assertion in raw_assertions:
         if not isinstance(assertion, str):
             raise ConfigError(f"{where}: assertions must be strings")
@@ -124,7 +122,7 @@ def _contract(item, default_schema: str, source: str, index: int) -> Contract:
         required_upstream=required,
         forbidden_upstream=forbidden,
         expected_type=expected_type.strip() if isinstance(expected_type, str) else None,
-        assertions=tuple(sorted(set(assertions))),
+        assertions=tuple(sorted(set(assertions), key=assertion_key)),
         description=description,
         source=source,
     )

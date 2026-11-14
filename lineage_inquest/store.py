@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .errors import NotFoundError
 from .graph.stable import edge_id
-from .models import Edge, Graph, Node, ScanResult
+from .models import Edge, Graph, Node, ScanResult, assertion_from_payload, assertion_payload
 from .store_schema import (
     SCHEMA,
     dumps,
@@ -90,7 +90,7 @@ class LedgerStore:
                         int(node.nullable),
                         int(node.primary_key),
                         node.origin,
-                        dumps(list(node.assertions)),
+                        dumps([assertion_payload(item) for item in node.assertions]),
                     )
                     for node in result.graph.nodes
                 ],
@@ -221,7 +221,7 @@ class LedgerStore:
                 nullable=bool(row["nullable"]),
                 primary_key=bool(row["primary_key"]),
                 origin=row["origin"],
-                assertions=tuple(json.loads(row["assertions_json"])),
+                assertions=tuple(assertion_from_payload(item) for item in json.loads(row["assertions_json"])),
             )
             for row in node_rows
         )

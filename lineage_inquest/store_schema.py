@@ -126,6 +126,7 @@ def finding_payload(row) -> dict:
 
 def node_payload(node: Node) -> dict:
     from .graph.stable import node_id
+    from .models import assertion_payload
 
     return {
         "id": node_id(node.name),
@@ -136,7 +137,7 @@ def node_payload(node: Node) -> dict:
         "nullable": node.nullable,
         "primary_key": node.primary_key,
         "origin": node.origin,
-        "assertions": list(node.assertions),
+        "assertions": [assertion_payload(item) for item in node.assertions],
     }
 
 

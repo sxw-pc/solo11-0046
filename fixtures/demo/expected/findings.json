@@ -5,6 +5,18 @@
   "summary": {
     "by_category": {},
     "by_severity": {},
+    "cycles": {
+      "budget": 200000,
+      "by_type": {
+        "binary": 0,
+        "multi": 0,
+        "self_loop": 0
+      },
+      "edges_examined": 18,
+      "total": 0,
+      "truncated": false,
+      "unvisited_nodes": 0
+    },
     "severity_overrides": {
       "unexpected_upstream": "info"
     },

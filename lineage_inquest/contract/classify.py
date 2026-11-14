@@ -23,6 +23,7 @@ def classify(
     draft: FindingDraft,
     severity: dict[str, str],
     overrides: dict[str, str],
+    context: dict | None = None,
 ) -> Finding:
     default = DEFAULT_SEVERITY[draft.category]
     actual = overrides.get(draft.category, severity.get(draft.category, default))
@@ -37,4 +38,5 @@ def classify(
         detail=draft.detail,
         script=draft.script,
         line=draft.line,
+        context=dict(context or {}),
     )

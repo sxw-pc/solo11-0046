@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from ..graph.build import edge_payload, node_payload
+from ..graph.cycle_payload import cycle_report_payload
 from ..graph.stable import stable_json
 from ..models import ScanResult
 
 
 def graph_payload(result: ScanResult) -> dict:
-    return {
+    payload = {
         "version": 1,
         "project": result.project,
         "input_digest": result.input_digest,
@@ -20,6 +21,9 @@ def graph_payload(result: ScanResult) -> dict:
         "nodes": [node_payload(node) for node in result.graph.nodes],
         "edges": [edge_payload(edge) for edge in result.graph.edges],
     }
+    if result.cycle_report is not None:
+        payload["cycle_detection"] = cycle_report_payload(result.cycle_report)
+    return payload
 
 
 def findings_payload(result: ScanResult) -> dict:
@@ -32,6 +36,7 @@ def findings_payload(result: ScanResult) -> dict:
             "by_severity": result.summary.get("by_severity", {}),
             "by_category": result.summary.get("by_category", {}),
             "severity_overrides": dict(sorted(result.severity_overrides.items())),
+            "cycles": result.summary.get("cycles", {}),
         },
         "findings": [
             {
@@ -45,6 +50,7 @@ def findings_payload(result: ScanResult) -> dict:
                 "detail": item.detail,
                 "script": item.script,
                 "line": item.line,
+                **({"context": item.context} if item.context else {}),
             }
             for item in result.findings
         ],

@@ -21,6 +21,37 @@ def _cell(value: object) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ")
 
 
+def _cycle_section(result: ScanResult) -> list[str]:
+    report = result.cycle_report
+    if report is None:
+        return []
+    lines = ["## Cycle detection", ""]
+    if not report.cycles:
+        lines.append("No cyclic strongly connected components.")
+        lines.append("")
+        return lines
+    lines.append(
+        f"Budget: {report.budget} edge examination(s), used {report.edges_examined}; "
+        f"truncated: {'yes' if report.truncated else 'no'}"
+        + (f" ({len(report.unvisited_nodes)} node(s) not visited)" if report.unvisited_nodes else "")
+    )
+    lines.append("")
+    lines.append("| # | Type | Members | Representative path | Truncated |")
+    lines.append("|---:|---|---|---|---|")
+    for index, cycle in enumerate(report.cycles, start=1):
+        primary = cycle.paths[0]
+        route = " -> ".join(primary.nodes)
+        extra = len(cycle.paths) - 1
+        if extra:
+            route += f" (+{extra} more)"
+        lines.append(
+            f"| {index} | `{_cell(cycle.cycle_type)}` | {len(cycle.members)} | "
+            f"`{_cell(route)}` | {'yes' if cycle.truncated else 'no'} |"
+        )
+    lines.append("")
+    return lines
+
+
 def _severity_table(result: ScanResult) -> list[str]:
     lines = ["| Category | Severity | Source |", "|---|---|---|"]
     for category in CATEGORIES:
@@ -89,6 +120,8 @@ def render_markdown(result: ScanResult) -> str:
                     "",
                 ]
             )
+
+    lines.extend(_cycle_section(result))
 
     lines.extend(
         [

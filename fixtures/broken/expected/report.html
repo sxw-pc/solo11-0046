@@ -49,7 +49,7 @@
   <header>
     <h1>Lineage Inquest</h1>
     <p>Static SQL lineage and contract inquest · line-hello-broken</p>
-    <p>Run run-3acaed7dd33e · Generated 2024-06-02T00:00:00Z · Input 14ba5bd3727acd1c · Config 5fb7f3df5bd1d380</p>
+    <p>Run run-4ac8855caf09 · Generated 2024-06-02T00:00:00Z · Input 14ba5bd3727acd1c · Config 16a378b02e7cb3b6</p>
   </header>
   <main>
 <section id="overview"><h2>Overview</h2><div class="metrics">
@@ -75,7 +75,7 @@
 </tbody></table></section>
 <section id="findings"><h2>Findings</h2>
 <table><thead><tr><th>Severity</th><th>Category</th><th>Target</th><th>Message</th><th>Location</th></tr></thead><tbody>
-<tr><td><span class="sev sev-error">error</span></td><td><code>cycle_detected</code></td><td><code>mart.ledger_a.id</code></td><td>a cycle was detected in the column lineage graph<details><summary>Explanation</summary><div><code>f-480494a53ae5ddc1</code><br>cycle: mart.ledger_a.id, mart.ledger_b.id</div></details></td><td><code>contract/global</code></td></tr>
+<tr><td><span class="sev sev-error">error</span></td><td><code>cycle_detected</code></td><td><code>mart.ledger_a.id</code></td><td>a cycle was detected in the column lineage graph<details><summary>Explanation</summary><div><code>f-5eb2e8c00bda9b42</code><br>binary cycle (2 member(s)): mart.ledger_a.id -&gt; mart.ledger_b.id -&gt; mart.ledger_a.id</div></details></td><td><code>contract/global</code></td></tr>
 <tr><td><span class="sev sev-error">error</span></td><td><code>missing_upstream</code></td><td><code>mart.revenue.total_amount</code></td><td>1 required upstream column(s) are not direct sources<details><summary>Explanation</summary><div><code>f-233609e49c117955</code><br>missing: raw.orders.gross_amount</div></details></td><td><code>broken.yaml:0</code></td></tr>
 <tr><td><span class="sev sev-warn">warn</span></td><td><code>assertion_mismatch</code></td><td><code>mart.revenue.day</code></td><td>declared assertions are not present in DDL/static metadata<details><summary>Explanation</summary><div><code>f-0b53e4c46806d783</code><br>missing assertions: not_null</div></details></td><td><code>broken.yaml:0</code></td></tr>
 <tr><td><span class="sev sev-warn">warn</span></td><td><code>table_redefined</code></td><td><code>raw.orders</code></td><td>table is defined more than once<details><summary>Explanation</summary><div><code>f-102db59fc2b603e1</code><br>redefined at 01_schema.sql:11; previous: 01_schema.sql:2</div></details></td><td><code>01_schema.sql:11</code></td></tr>
@@ -88,6 +88,11 @@
 <tr><td><span class="sev sev-warn">warn</span></td><td><code>unsupported_sql</code></td><td><code>04_unsupported.sql:8:recursive_cte</code></td><td>unsupported SQL construct: recursive_cte<details><summary>Explanation</summary><div><code>f-d0bf97fc0fb965c5</code><br>recursive common table expressions are not supported</div></details></td><td><code>04_unsupported.sql:8</code></td></tr>
 </tbody></table>
 </section>
+<section id="cycles"><h2>Cycle detection</h2>
+<p class="muted">Budget 200000 edge examination(s), used 5; truncated: <strong>no</strong></p>
+<table><thead><tr><th>#</th><th>Type</th><th>Members</th><th>Representative path(s)</th><th>Truncated</th></tr></thead><tbody>
+<tr><td>1</td><td><code>binary</code></td><td>2</td><td><code>mart.ledger_a.id -&gt; mart.ledger_b.id -&gt; mart.ledger_a.id</code></td><td>no</td></tr>
+</tbody></table></section>
 <section id="files"><h2>By script</h2><table><thead><tr>
 <th>Script</th><th>Statements</th><th>Supported</th><th>Unsupported</th><th>Edges</th><th>Findings</th></tr></thead><tbody>
 <tr><td><code>01_schema.sql</code></td><td>5</td><td>5</td><td>0</td><td>0</td><td>1</td></tr>

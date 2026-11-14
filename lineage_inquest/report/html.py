@@ -24,6 +24,45 @@ def _e(value: object) -> str:
     return escape(str(value), quote=True)
 
 
+def _cycle_section(result: ScanResult) -> list[str]:
+    report = result.cycle_report
+    if report is None:
+        return []
+    body = ['<section id="cycles"><h2>Cycle detection</h2>']
+    if not report.cycles:
+        body.append('<p class="empty">No cyclic strongly connected components.</p></section>')
+        return body
+    unvisited = (
+        f", {len(report.unvisited_nodes)} node(s) not visited" if report.unvisited_nodes else ""
+    )
+    body.append(
+        '<p class="muted">Budget '
+        f"{_e(report.budget)} edge examination(s), used {_e(report.edges_examined)}; "
+        f"truncated: <strong>{'yes' if report.truncated else 'no'}</strong>{_e(unvisited)}</p>"
+    )
+    body.append(
+        "<table><thead><tr><th>#</th><th>Type</th><th>Members</th>"
+        "<th>Representative path(s)</th><th>Truncated</th></tr></thead><tbody>"
+    )
+    for index, cycle in enumerate(report.cycles, start=1):
+        routes = "<br>".join(
+            ("<code>" + _e(" -> ".join(path.nodes)) + "</code>")
+            + (' <span class="muted">(partial)</span>' if path.partial else "")
+            for path in cycle.paths
+        )
+        body.append(
+            "<tr>"
+            f"<td>{index}</td>"
+            f"<td><code>{_e(cycle.cycle_type)}</code></td>"
+            f"<td>{len(cycle.members)}</td>"
+            f"<td>{routes}</td>"
+            f"<td>{'yes' if cycle.truncated else 'no'}</td>"
+            "</tr>"
+        )
+    body.append("</tbody></table></section>")
+    return body
+
+
 def render_html(result: ScanResult) -> str:
     counts = result.summary["counts"]
     body: list[str] = []
@@ -81,6 +120,8 @@ def render_html(result: ScanResult) -> str:
             )
         body.append("</tbody></table>")
     body.append("</section>")
+
+    body.extend(_cycle_section(result))
 
     body.append('<section id="files"><h2>By script</h2><table><thead><tr>')
     body.append(

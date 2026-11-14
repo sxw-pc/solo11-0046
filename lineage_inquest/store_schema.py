@@ -58,7 +58,17 @@ CREATE TABLE IF NOT EXISTS finding (
   detail TEXT NOT NULL,
   script TEXT NOT NULL,
   line INTEGER NOT NULL,
+  context_json TEXT NOT NULL DEFAULT '{}',
   PRIMARY KEY (run_id, finding_id)
+);
+CREATE TABLE IF NOT EXISTS cycle (
+  run_id TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  members_json TEXT NOT NULL,
+  cycle_type TEXT NOT NULL,
+  truncated INTEGER NOT NULL,
+  payload_json TEXT NOT NULL,
+  PRIMARY KEY (run_id, seq)
 );
 CREATE TABLE IF NOT EXISTS unsupported (
   run_id TEXT NOT NULL,
@@ -73,6 +83,23 @@ CREATE TABLE IF NOT EXISTS unsupported (
 CREATE INDEX IF NOT EXISTS idx_finding_severity ON finding(run_id, severity);
 CREATE INDEX IF NOT EXISTS idx_edge_target ON edge(run_id, target);
 """
+
+# Columns added after the initial release; applied lazily so ledgers created
+# by older builds keep working instead of failing on a missing column.
+_MIGRATIONS = (
+    (
+        "finding",
+        "context_json",
+        "ALTER TABLE finding ADD COLUMN context_json TEXT NOT NULL DEFAULT '{}'",
+    ),
+)
+
+
+def apply_migrations(connection: sqlite3.Connection) -> None:
+    for table, column, statement in _MIGRATIONS:
+        existing = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            connection.execute(statement)
 
 
 def dumps(value) -> str:
@@ -110,7 +137,7 @@ def run_payload(row: sqlite3.Row) -> dict:
 
 
 def finding_payload(row) -> dict:
-    return {
+    payload = {
         "id": row["finding_id"],
         "category": row["category"],
         "severity": row["severity"],
@@ -122,6 +149,12 @@ def finding_payload(row) -> dict:
         "script": row["script"],
         "line": row["line"],
     }
+    keys = row.keys()
+    if "context_json" in keys:
+        context = json.loads(row["context_json"])
+        if context:
+            payload["context"] = context
+    return payload
 
 
 def node_payload(node: Node) -> dict:

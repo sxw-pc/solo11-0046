@@ -1,10 +1,10 @@
 # Lineage Inquest report
 
 - Project: `line-hello-broken`
-- Run: `run-3acaed7dd33e`
+- Run: `run-4ac8855caf09`
 - Generated (UTC): `2024-06-02T00:00:00Z`
 - Input digest: `14ba5bd3727acd1c6f7e9fc7418cabdf99c0a3fc1e661600f4c6cbcaebb8badb`
-- Config digest: `5fb7f3df5bd1d38072aa0c63d09392ea059839432b3982240286d9f7fc2b019c`
+- Config digest: `16a378b02e7cb3b6052c917bd39e5808f894ad587ad8e55f39a4a3918fdee34d`
 
 ## Overview
 
@@ -44,11 +44,11 @@ By severity: error=2, warn=9
 
 ### Finding details
 
-<details><summary><code>f-480494a53ae5ddc1</code> cycle_detected</summary>
+<details><summary><code>f-5eb2e8c00bda9b42</code> cycle_detected</summary>
 
 - Target: `mart.ledger_a.id`
 - Location: `contract/global`
-- Detail: cycle: mart.ledger_a.id, mart.ledger_b.id
+- Detail: binary cycle (2 member(s)): mart.ledger_a.id -> mart.ledger_b.id -> mart.ledger_a.id
 
 </details>
 
@@ -131,6 +131,14 @@ By severity: error=2, warn=9
 - Detail: recursive common table expressions are not supported
 
 </details>
+
+## Cycle detection
+
+Budget: 200000 edge examination(s), used 5; truncated: no
+
+| # | Type | Members | Representative path | Truncated |
+|---:|---|---|---|---|
+| 1 | `binary` | 2 | `mart.ledger_a.id -> mart.ledger_b.id -> mart.ledger_a.id` | no |
 
 ## Files
 

@@ -1,10 +1,10 @@
 # Lineage Inquest report
 
 - Project: `line-hello-demo`
-- Run: `run-f4909f280e3c`
+- Run: `run-d9d14b33f6d4`
 - Generated (UTC): `2024-06-01T00:00:00Z`
 - Input digest: `4fc04d8bb371d181a1e9785d4b7b8a4c9d5e7e3251b04c2c001c4bb5b673c550`
-- Config digest: `648506ba1bd9ad1a69733186435b414aaadf71c7cbb82d7d8d25776b0780c100`
+- Config digest: `1d7aa3a9e62a0055e43d352f46c0200f3934c30dc88b9505f3d04eb65e3a47c5`
 
 ## Overview
 
@@ -29,6 +29,10 @@ By severity: none
 ## Findings
 
 No findings.
+
+## Cycle detection
+
+No cyclic strongly connected components.
 
 ## Files
 

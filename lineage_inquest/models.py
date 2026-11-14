@@ -96,6 +96,54 @@ class Graph:
         return {n.name for n in self.nodes}
 
 
+# Cycle taxonomy. "self_loop" is a single vertex pointing at itself, "binary"
+# is a two-vertex strongly connected component, and "multi" is anything wider.
+CYCLE_TYPE_SELF_LOOP = "self_loop"
+CYCLE_TYPE_BINARY = "binary"
+CYCLE_TYPE_MULTI = "multi"
+CYCLE_TYPES = (CYCLE_TYPE_SELF_LOOP, CYCLE_TYPE_BINARY, CYCLE_TYPE_MULTI)
+
+
+@dataclass(frozen=True)
+class CycleHop:
+    """One directed edge (source -> target) on a representative cycle path."""
+
+    source: str
+    target: str
+    kind: str
+
+
+@dataclass(frozen=True)
+class CyclePath:
+    """A closed directed walk. nodes[0] == nodes[-1]; each hop joins two
+    consecutive nodes, so len(hops) == len(nodes) - 1."""
+
+    nodes: tuple[str, ...]
+    hops: tuple[CycleHop, ...]
+    partial: bool = False
+
+
+@dataclass(frozen=True, order=True)
+class CycleInfo:
+    """An explainable view of one cyclic strongly connected component."""
+
+    members: tuple[str, ...]
+    cycle_type: str
+    paths: tuple[CyclePath, ...]
+    truncated: bool = False
+
+
+@dataclass(frozen=True)
+class CycleReport:
+    """Full outcome of a budgeted cycle scan over one graph."""
+
+    cycles: tuple[CycleInfo, ...]
+    truncated: bool
+    budget: int
+    edges_examined: int
+    unvisited_nodes: tuple[str, ...] = ()
+
+
 @dataclass(frozen=True)
 class Contract:
     target: str
@@ -119,6 +167,7 @@ class Finding:
     detail: str
     script: str = ""
     line: int = 0
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -154,3 +203,4 @@ class ScanResult:
     severity: dict[str, str]
     severity_overrides: dict[str, str]
     summary: dict[str, Any]
+    cycle_report: CycleReport | None = None

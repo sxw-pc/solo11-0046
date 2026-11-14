@@ -43,6 +43,7 @@ _TOP_KEYS = {
     "frozen_time",
     "expect_findings",
     "max_query_depth",
+    "cycle_budget",
 }
 _SERVER_KEYS = {"host", "port"}
 
@@ -61,6 +62,7 @@ class Config:
     frozen_time: str | None
     expect_findings: Path | None
     max_query_depth: int
+    cycle_budget: int
     source_path: Path
     raw: dict[str, Any]
 
@@ -72,6 +74,7 @@ class Config:
                 "default_schema": self.default_schema,
                 "severity": self.severity,
                 "max_query_depth": self.max_query_depth,
+                "cycle_budget": self.cycle_budget,
             }
         )
 
@@ -189,6 +192,9 @@ def load_config(path: str | Path) -> Config:
     max_depth = root.get("max_query_depth", 8)
     if isinstance(max_depth, bool) or not isinstance(max_depth, int) or not 1 <= max_depth <= 50:
         raise ConfigError("max_query_depth must be an integer between 1 and 50")
+    cycle_budget = root.get("cycle_budget", 200000)
+    if isinstance(cycle_budget, bool) or not isinstance(cycle_budget, int) or not 1 <= cycle_budget <= 100_000_000:
+        raise ConfigError("cycle_budget must be an integer between 1 and 100000000")
     expect = root.get("expect_findings")
     expect_path = _path(expect, "expect_findings", base) if expect else None
     frozen = parse_frozen_time(root.get("frozen_time"))
@@ -206,6 +212,7 @@ def load_config(path: str | Path) -> Config:
         frozen_time=frozen,
         expect_findings=expect_path,
         max_query_depth=max_depth,
+        cycle_budget=cycle_budget,
         source_path=cfg_path,
         raw=root,
     )

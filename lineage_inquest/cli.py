@@ -89,6 +89,13 @@ def _print_scan(result, artifacts, ledger: Path) -> None:
         f"scan {result.run_id}: tables={counts['tables']} nodes={counts['nodes']} "
         f"edges={counts['edges']} findings={counts['findings']} unsupported={counts['unsupported']}"
     )
+    if result.cycle_report is not None:
+        cycle_stats = result.summary["cycles"]
+        print(
+            f"cycles: total={cycle_stats['total']} self_loop={cycle_stats['by_type']['self_loop']} "
+            f"binary={cycle_stats['by_type']['binary']} multi={cycle_stats['by_type']['multi']} "
+            f"truncated={'yes' if cycle_stats['truncated'] else 'no'}"
+        )
     for label in ("graph", "findings", "markdown", "html"):
         print(f"{label}: {artifacts[label]}")
     print(f"ledger: {ledger}")

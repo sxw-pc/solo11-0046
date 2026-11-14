@@ -15,10 +15,11 @@ from .contract.loader import load_contracts
 from .dialect import statement_kind
 from .errors import ConfigError
 from .graph.build import build_graph
-from .graph.query import detect_cycles
+from .graph.query import detect_cycles_report
 from .graph.stable import content_hash
 from .models import (
     ColumnMapping,
+    CycleInfo,
     Finding,
     ScanResult,
     StatementInfo,
@@ -123,13 +124,14 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
             statements.append(StatementInfo(relative, unit.line, unit.index, kind, "unsupported" if parser_issues else "supported", reason))
 
     graph = build_graph(known, mappings)
-    for cycle in detect_cycles(graph):
+    cycle_report = detect_cycles_report(graph, config.cycle_budget)
+    for cycle in cycle_report.cycles:
         drafts.append(
             FindingDraft(
                 "cycle_detected",
-                cycle[0],
+                cycle.members[0],
                 "a cycle was detected in the column lineage graph",
-                "cycle: " + ", ".join(cycle),
+                _cycle_detail(cycle),
                 "",
                 0,
             )
@@ -147,11 +149,11 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
             )
         )
 
-    findings = _finalize_findings(drafts, config)
+    findings = _finalize_findings(drafts, config, _cycle_contexts(cycle_report))
     unsupported.sort(key=lambda item: (item.script, item.line, item.construct, item.reason))
     unsupported = _dedupe_unsupported(unsupported)
     statements.sort(key=lambda item: (item.script, item.line, item.index))
-    summary = _summary(graph, statements, unsupported, findings)
+    summary = _summary(graph, statements, unsupported, findings, cycle_report)
     return ScanResult(
         project=config.project,
         run_id=run_id,
@@ -165,17 +167,40 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
         severity=dict(config.severity),
         severity_overrides=dict(config.severity_overrides),
         summary=summary,
+        cycle_report=cycle_report,
     )
+
+
+def _cycle_detail(cycle: CycleInfo) -> str:
+    primary = cycle.paths[0]
+    route = " -> ".join(primary.nodes)
+    detail = f"{cycle.cycle_type} cycle ({len(cycle.members)} member(s)): {route}"
+    if len(cycle.paths) > 1:
+        detail += f" (+{len(cycle.paths) - 1} more representative path(s))"
+    if cycle.truncated:
+        detail += " [truncated: traversal budget exhausted, path list may be incomplete]"
+    return detail
+
+
+def _cycle_contexts(cycle_report) -> dict[str, dict]:
+    from .graph.cycle_payload import cycle_payload
+
+    return {
+        _cycle_detail(cycle): cycle_payload(cycle)
+        for cycle in cycle_report.cycles
+    }
 
 
 def _unsupported(unit, construct: str, reason: str) -> Unsupported:
     return Unsupported(unit.script, unit.line, construct, reason, unit.text.strip()[:160])
 
 
-def _finalize_findings(drafts: list[FindingDraft], config: Config) -> list[Finding]:
+def _finalize_findings(drafts: list[FindingDraft], config: Config, contexts: dict[str, dict] | None = None) -> list[Finding]:
     unique: dict[str, Finding] = {}
+    contexts = contexts or {}
     for draft in drafts:
-        finding = classify(draft, config.severity, config.severity_overrides)
+        context = contexts.get(draft.detail) if draft.category == "cycle_detected" else None
+        finding = classify(draft, config.severity, config.severity_overrides, context)
         unique.setdefault(finding.finding_id, finding)
     rank = {"error": 0, "warn": 1, "info": 2}
     return sorted(
@@ -195,7 +220,7 @@ def _dedupe_unsupported(items: list[Unsupported]) -> list[Unsupported]:
     return result
 
 
-def _summary(graph, statements, unsupported, findings) -> dict:
+def _summary(graph, statements, unsupported, findings, cycle_report=None) -> dict:
     file_names = sorted({item.script for item in statements})
     files = []
     for script in file_names:
@@ -218,6 +243,28 @@ def _summary(graph, statements, unsupported, findings) -> dict:
         )
     by_severity = Counter(item.severity for item in findings)
     by_category = Counter(item.category for item in findings)
+    cycle_summary = {
+        "total": 0,
+        "by_type": {"self_loop": 0, "binary": 0, "multi": 0},
+        "truncated": False,
+        "budget": 0,
+        "edges_examined": 0,
+        "unvisited_nodes": 0,
+    }
+    if cycle_report is not None:
+        type_counts = Counter(cycle.cycle_type for cycle in cycle_report.cycles)
+        cycle_summary = {
+            "total": len(cycle_report.cycles),
+            "by_type": {
+                "self_loop": type_counts.get("self_loop", 0),
+                "binary": type_counts.get("binary", 0),
+                "multi": type_counts.get("multi", 0),
+            },
+            "truncated": cycle_report.truncated,
+            "budget": cycle_report.budget,
+            "edges_examined": cycle_report.edges_examined,
+            "unvisited_nodes": len(cycle_report.unvisited_nodes),
+        }
     return {
         "counts": {
             "tables": graph.tables,
@@ -230,5 +277,6 @@ def _summary(graph, statements, unsupported, findings) -> dict:
         },
         "by_severity": dict(sorted(by_severity.items())),
         "by_category": dict(sorted(by_category.items())),
+        "cycles": cycle_summary,
         "files": files,
     }

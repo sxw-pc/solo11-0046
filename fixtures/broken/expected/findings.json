@@ -2,9 +2,39 @@
   "findings": [
     {
       "category": "cycle_detected",
+      "context": {
+        "cycle_type": "binary",
+        "members": [
+          "mart.ledger_a.id",
+          "mart.ledger_b.id"
+        ],
+        "paths": [
+          {
+            "hops": [
+              {
+                "kind": "direct",
+                "source": "mart.ledger_a.id",
+                "target": "mart.ledger_b.id"
+              },
+              {
+                "kind": "direct",
+                "source": "mart.ledger_b.id",
+                "target": "mart.ledger_a.id"
+              }
+            ],
+            "nodes": [
+              "mart.ledger_a.id",
+              "mart.ledger_b.id",
+              "mart.ledger_a.id"
+            ],
+            "partial": false
+          }
+        ],
+        "truncated": false
+      },
       "default_severity": "error",
-      "detail": "cycle: mart.ledger_a.id, mart.ledger_b.id",
-      "id": "f-480494a53ae5ddc1",
+      "detail": "binary cycle (2 member(s)): mart.ledger_a.id -> mart.ledger_b.id -> mart.ledger_a.id",
+      "id": "f-5eb2e8c00bda9b42",
       "line": 0,
       "message": "a cycle was detected in the column lineage graph",
       "overridden": false,
@@ -148,6 +178,18 @@
     "by_severity": {
       "error": 2,
       "warn": 9
+    },
+    "cycles": {
+      "budget": 200000,
+      "by_type": {
+        "binary": 1,
+        "multi": 0,
+        "self_loop": 0
+      },
+      "edges_examined": 5,
+      "total": 1,
+      "truncated": false,
+      "unvisited_nodes": 0
     },
     "severity_overrides": {
       "type_mismatch": "warn"

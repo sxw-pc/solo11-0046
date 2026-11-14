@@ -8,10 +8,12 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from .errors import NotFoundError
+from .graph.cycle_payload import cycle_payload
 from .graph.stable import edge_id
 from .models import Edge, Graph, Node, ScanResult
 from .store_schema import (
     SCHEMA,
+    apply_migrations,
     dumps,
     edge_from_row,
     edge_payload,
@@ -42,6 +44,8 @@ class LedgerStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._open() as connection:
             connection.executescript(SCHEMA)
+            apply_migrations(connection)
+            connection.commit()
 
     def write_scan(self, result: ScanResult) -> None:
         self.initialize()
@@ -51,6 +55,7 @@ class LedgerStore:
             connection.execute("DELETE FROM edge WHERE run_id = ?", (result.run_id,))
             connection.execute("DELETE FROM finding WHERE run_id = ?", (result.run_id,))
             connection.execute("DELETE FROM unsupported WHERE run_id = ?", (result.run_id,))
+            connection.execute("DELETE FROM cycle WHERE run_id = ?", (result.run_id,))
             connection.execute(
                 """
                 INSERT OR REPLACE INTO run (
@@ -115,7 +120,7 @@ class LedgerStore:
                 ],
             )
             connection.executemany(
-                "INSERT INTO finding VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO finding VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 [
                     (
                         result.run_id,
@@ -129,10 +134,26 @@ class LedgerStore:
                         item.detail,
                         item.script,
                         item.line,
+                        dumps(item.context),
                     )
                     for item in result.findings
                 ],
             )
+            if result.cycle_report is not None:
+                connection.executemany(
+                    "INSERT INTO cycle VALUES (?, ?, ?, ?, ?, ?)",
+                    [
+                        (
+                            result.run_id,
+                            seq,
+                            dumps(list(cycle.members)),
+                            cycle.cycle_type,
+                            int(cycle.truncated),
+                            dumps(cycle_payload(cycle)),
+                        )
+                        for seq, cycle in enumerate(result.cycle_report.cycles)
+                    ],
+                )
             connection.executemany(
                 "INSERT INTO unsupported VALUES (?, ?, ?, ?, ?, ?, ?)",
                 [
@@ -194,6 +215,14 @@ class LedgerStore:
             rows = connection.execute(query, params).fetchall()
         return [finding_payload(row) for row in rows]
 
+    def list_cycles(self, run_id: str) -> list[dict]:
+        self.require_run(run_id)
+        with self._open() as connection:
+            rows = connection.execute(
+                "SELECT payload_json FROM cycle WHERE run_id = ? ORDER BY seq", (run_id,)
+            ).fetchall()
+        return [json.loads(row["payload_json"]) for row in rows]
+
     def get_finding(self, run_id: str, finding_id: str) -> dict | None:
         self.require_run(run_id)
         with self._open() as connection:
@@ -241,11 +270,15 @@ class LedgerStore:
             unsupported = connection.execute(
                 "SELECT * FROM unsupported WHERE run_id = ? ORDER BY seq", (run_id,)
             ).fetchall()
+            cycle_rows = connection.execute(
+                "SELECT * FROM cycle WHERE run_id = ? ORDER BY seq", (run_id,)
+            ).fetchall()
         return {
             "run": run,
             "nodes": [node_payload(node) for node in graph.nodes],
             "edges": [edge_payload(edge) for edge in graph.edges],
             "findings": [finding_payload(row) for row in findings],
+            "cycles": [json.loads(row["payload_json"]) for row in cycle_rows],
             "unsupported": [
                 {
                     "script": row["script"],

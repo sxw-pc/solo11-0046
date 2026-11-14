@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .config import Config, load_config, parse_frozen_time, validate_host
 from .errors import ConfigError, NotFoundError
-from .graph.query import downstream, upstream
+from .graph.query import downstream, impact, upstream
 from .graph.stable import stable_json
 from .report.json_out import findings_payload
 from .report.writer import write_artifacts, write_text
@@ -68,6 +68,13 @@ def build_parser() -> argparse.ArgumentParser:
     diff_parser.add_argument("--target", required=True)
     diff_parser.add_argument("--out", help="override output directory")
     diff_parser.add_argument("--output", help="optional JSON output path")
+
+    impact_parser = sub.add_parser("impact", help="propagate edge changes between two runs to affected terminal columns")
+    _config_arg(impact_parser)
+    impact_parser.add_argument("--base", required=True)
+    impact_parser.add_argument("--target", required=True)
+    impact_parser.add_argument("--out", help="override output directory")
+    impact_parser.add_argument("--output", help="optional JSON output path")
     return parser
 
 
@@ -184,6 +191,24 @@ def _do_diff(args, config: Config) -> int:
     return EXIT_OK
 
 
+def _do_impact(args, config: Config) -> int:
+    store = LedgerStore(_out(args, config) / "ledger.sqlite")
+    store.require_run(args.base)
+    store.require_run(args.target)
+    payload = {
+        "base": args.base,
+        "target": args.target,
+        **impact(store.snapshot(args.base), store.snapshot(args.target)),
+    }
+    if args.output:
+        target = Path(args.output).expanduser().resolve()
+        write_text(target, stable_json(payload))
+        print(f"impact written to {target}")
+    else:
+        sys.stdout.write(stable_json(payload))
+    return EXIT_OK
+
+
 def _do_serve(args, config: Config) -> int:
     host = args.host or config.server_host
     validate_host(host)
@@ -220,6 +245,8 @@ def main(argv: list[str] | None = None) -> int:
             return _do_query(args, config)
         if args.command == "diff":
             return _do_diff(args, config)
+        if args.command == "impact":
+            return _do_impact(args, config)
         raise ConfigError(f"unknown command: {args.command}")
     except NotFoundError as exc:
         print(f"error: {exc}", file=sys.stderr)

@@ -71,6 +71,86 @@ def _traverse(graph: Graph, node: str, direction: str, depth: int) -> dict:
     }
 
 
+def impact(base_snapshot: dict, target_snapshot: dict) -> dict:
+    """Propagate edge-level diffs downstream to terminal columns.
+
+    Consumes only the ``nodes`` / ``edges`` payloads of two
+    ``LedgerStore.snapshot`` results.  For every added or removed edge the
+    edge's target end is the propagation start; enumeration then follows
+    outgoing edges in the *target* graph only, down to columns with no
+    outgoing edge.  A removed edge's start is judged from the base
+    snapshot, but nodes absent from the target graph are unreachable and
+    yield no chains.
+    """
+    base_edges = {item["id"]: item for item in base_snapshot["edges"]}
+    target_edges = {item["id"]: item for item in target_snapshot["edges"]}
+    target_nodes = {item["name"] for item in target_snapshot["nodes"]}
+    adjacency = _outgoing(target_snapshot["edges"])
+    added = [target_edges[key] for key in sorted(set(target_edges) - set(base_edges))]
+    removed = [base_edges[key] for key in sorted(set(base_edges) - set(target_edges))]
+    entries = {
+        "added": [_impact_entry(edge, adjacency, target_nodes) for edge in added],
+        "removed": [_impact_entry(edge, adjacency, target_nodes) for edge in removed],
+    }
+    terminals = {
+        terminal["node"]
+        for group in entries.values()
+        for entry in group
+        for terminal in entry["terminals"]
+    }
+    return {
+        **entries,
+        "summary": {
+            "added_count": len(entries["added"]),
+            "removed_count": len(entries["removed"]),
+            "terminal_count": len(terminals),
+        },
+    }
+
+
+def _outgoing(edges: list[dict]) -> dict[str, list[str]]:
+    result: dict[str, set[str]] = {}
+    for edge in edges:
+        result.setdefault(edge["source"], set()).add(edge["target"])
+    return {source: sorted(targets) for source, targets in result.items()}
+
+
+def _impact_entry(edge: dict, adjacency: dict[str, list[str]], target_nodes: set[str]) -> dict:
+    start = edge["target"]
+    terminals = _terminal_paths(start, adjacency) if start in target_nodes else {}
+    return {
+        "edge": edge,
+        "start": start,
+        "terminals": [
+            {"node": node, "paths": [list(path) for path in paths]}
+            for node, paths in sorted(terminals.items())
+        ],
+    }
+
+
+def _terminal_paths(start: str, adjacency: dict[str, list[str]]) -> dict[str, list[tuple[str, ...]]]:
+    """All simple paths from ``start`` to no-outgoing-edge terminals.
+
+    Nodes are deduplicated within a path so cycles cannot loop or blow up;
+    a path that can only continue into itself simply never reaches a
+    terminal.  Paths per terminal are deduplicated and sorted.
+    """
+    terminals: dict[str, set[tuple[str, ...]]] = {}
+    stack: list[tuple[str, ...]] = [(start,)]
+    while stack:
+        path = stack.pop()
+        node = path[-1]
+        neighbors = adjacency.get(node, [])
+        if not neighbors:
+            terminals.setdefault(node, set()).add(path)
+            continue
+        visited = set(path)
+        for neighbor in neighbors:
+            if neighbor not in visited:
+                stack.append(path + (neighbor,))
+    return {node: sorted(paths) for node, paths in terminals.items()}
+
+
 def detect_cycles(graph: Graph) -> list[tuple[str, ...]]:
     adjacency: dict[str, list[str]] = {node.name: [] for node in graph.nodes}
     self_loops: set[str] = set()

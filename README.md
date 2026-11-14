@@ -225,6 +225,10 @@ HTML 使用内联 CSS、无 JavaScript、无外链、无 CDN，可直接离线�
 - `export --run-id RUN`：导出 `{run, nodes, edges, findings, unsupported}`
   快照到 `<out>/exports/RUN.json`，可用 `--output` 指定路径。
 - `diff --base A --target B`：输出新增/消除的 finding 与边及计数。
+- `impact --base A --target B`：对 diff 的每条新增/消除边，从边的 target
+  端沿 target 图向下游枚举到无出边的终端列，给出按确定规则去重排序的列名
+  路径集合；removed 边起点以 base 图判定，target 图中缺失的节点不可达、
+  不产链。可用 `--output` 落盘。
 - `query --node ... --direction upstream|downstream --depth N`：输出
   `root`、`direction`、`depth`、`truncated`、带 `hop` 的节点和边。
 

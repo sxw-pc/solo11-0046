@@ -6,7 +6,14 @@ from dataclasses import dataclass, field
 
 from sqlglot import exp
 
-from ..models import ColumnMapping, SqlUnit, TableDef, Unsupported
+from ..models import (
+    BRANCH_MERGE_INSERT,
+    BRANCH_MERGE_UPDATE,
+    ColumnMapping,
+    SqlUnit,
+    TableDef,
+    Unsupported,
+)
 from ..naming import clean_ident
 from ..sqltext import snippet
 from .ddl import table_name
@@ -127,7 +134,7 @@ def _merge_update(unit, then, target_name, definition, scopes, issues, result) -
             issues.append(MappingIssue("unknown_target_column", f"target column {target_name}.{name} is not defined"))
             continue
         output = map_expression(assignment.expression, name, scopes, issues)
-        _record(unit, result, target_name, name, output)
+        _record(unit, result, target_name, name, output, BRANCH_MERGE_UPDATE)
 
 
 def _merge_insert(unit, then, target_name, definition, scopes, issues, result) -> None:
@@ -153,10 +160,10 @@ def _merge_insert(unit, then, target_name, definition, scopes, issues, result) -
             issues.append(MappingIssue("unknown_target_column", f"target column {target_name}.{name} is not defined"))
             continue
         output = map_expression(value, name, scopes, issues)
-        _record(unit, result, target_name, name, output)
+        _record(unit, result, target_name, name, output, BRANCH_MERGE_INSERT)
 
 
-def _record(unit, result, table: str, name: str, output) -> None:
+def _record(unit, result, table: str, name: str, output, branch: str = "") -> None:
     if not output.sources:
         return
     result.mappings.append(
@@ -168,6 +175,7 @@ def _record(unit, result, table: str, name: str, output) -> None:
             unit.script,
             unit.line,
             unit.index,
+            branch,
         )
     )
 

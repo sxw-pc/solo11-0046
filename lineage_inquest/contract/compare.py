@@ -1,4 +1,14 @@
-"""Compare declared contracts with the statically reconstructed graph."""
+"""Compare declared contracts with the statically reconstructed graph.
+
+Branch semantics: MERGE statements may produce several branch-tagged edges
+(``merge_update`` / ``merge_insert``) into the same target column. Contract
+comparison is deliberately branch-agnostic: ``required_upstream`` is an
+allow-list over source *column identities*, and every direct upstream source
+counts no matter which branch carries it. A contract that lists only one
+branch's source therefore reports the other branch's source as
+``unexpected_upstream`` (never silently ignored), and a required source is
+satisfied when it appears on any branch.
+"""
 
 from __future__ import annotations
 
@@ -45,6 +55,8 @@ def types_match(expected: str, actual: str) -> bool:
 
 
 def _direct_sources(graph: Graph) -> dict[str, set[str]]:
+    # Branch-agnostic on purpose: both MERGE branches physically feed the
+    # target column, so each branch's sources join the same allow-list check.
     sources: dict[str, set[str]] = {}
     for edge in graph.edges:
         sources.setdefault(edge.target, set()).add(edge.source)

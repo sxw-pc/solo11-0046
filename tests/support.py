@@ -69,10 +69,15 @@ class Project:
                 return node
         raise AssertionError(f"node not found: {name}")
 
-    def edge(self, result, source: str, target: str, kind: str | None = None):
+    def edge(self, result, source: str, target: str, kind: str | None = None, branch: str | None = None):
         for edge in result.graph.edges:
-            if edge.source == source and edge.target == target and (kind is None or edge.kind == kind):
-                return edge
+            if edge.source != source or edge.target != target:
+                continue
+            if kind is not None and edge.kind != kind:
+                continue
+            if branch is not None and edge.branch != branch:
+                continue
+            return edge
         raise AssertionError(f"edge not found: {source} -> {target}")
 
 

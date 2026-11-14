@@ -1,5 +1,10 @@
 from support import findings_for
 
+from lineage_inquest.graph.query import upstream
+from lineage_inquest.graph.stable import edge_id
+from lineage_inquest.models import BRANCH_MERGE_INSERT, BRANCH_MERGE_UPDATE
+from lineage_inquest.store import LedgerStore
+
 
 def _base(project_factory, name="produce"):
     p = project_factory(name)
@@ -90,11 +95,108 @@ def test_merge_extracts_update_and_insert_mappings(project_factory):
         """,
     )
     result = p.scan()
-    amount_edge = p.edge(result, "raw.changes.amount", "mart.target.amount", "direct")
-    assert len(amount_edge.locations) == 1
-    p.edge(result, "raw.changes.id", "mart.target.id", "direct")
+    # The same source column feeding the same target column through two MERGE
+    # branches stays two distinct, branch-tagged edges instead of collapsing.
+    update_edge = p.edge(result, "raw.changes.amount", "mart.target.amount", "direct", BRANCH_MERGE_UPDATE)
+    insert_edge = p.edge(result, "raw.changes.amount", "mart.target.amount", "direct", BRANCH_MERGE_INSERT)
+    assert update_edge != insert_edge
+    assert update_edge.locations == insert_edge.locations
+    assert len(update_edge.locations) == 1
+    assert update_edge.locations[0].script == "merge.sql"
+    id_edge = p.edge(result, "raw.changes.id", "mart.target.id", "direct")
+    assert id_edge.branch == BRANCH_MERGE_INSERT
     assert not any(edge.target == "mart.target.label" for edge in result.graph.edges)
-    assert amount_edge.locations[0].script == "merge.sql"
+
+
+def test_merge_branches_with_different_sources_stay_separate(project_factory):
+    p = project_factory("merge-branches")
+    p.sql(
+        "00_schema.sql",
+        """
+        CREATE TABLE raw.updates (id INT, amount INT);
+        CREATE TABLE raw.catalog (id INT, default_amount INT);
+        CREATE TABLE mart.target (id INT, amount INT);
+        """,
+    )
+    p.sql(
+        "merge.sql",
+        """
+        MERGE INTO mart.target AS t
+        USING (
+          SELECT u.id, u.amount, c.default_amount
+          FROM raw.updates AS u
+          JOIN raw.catalog AS c ON u.id = c.id
+        ) AS s
+        ON t.id = s.id
+        WHEN MATCHED THEN UPDATE SET t.amount = s.amount
+        WHEN NOT MATCHED THEN INSERT (id, amount) VALUES (s.id, s.default_amount);
+        """,
+    )
+    result = p.scan()
+    update_edge = p.edge(result, "raw.updates.amount", "mart.target.amount", "direct", BRANCH_MERGE_UPDATE)
+    insert_edge = p.edge(result, "raw.catalog.default_amount", "mart.target.amount", "direct", BRANCH_MERGE_INSERT)
+    assert [loc.script for loc in update_edge.locations] == ["merge.sql"]
+    assert [loc.script for loc in insert_edge.locations] == ["merge.sql"]
+    # Branch-tagged edges get distinct content-addressed ids.
+    assert edge_id("raw.updates.amount", "mart.target.amount", "direct", BRANCH_MERGE_UPDATE) != edge_id(
+        "raw.catalog.default_amount", "mart.target.amount", "direct", BRANCH_MERGE_INSERT
+    )
+    # Deterministic ordering: edges sort by (target, source, kind, branch).
+    keys = [(edge.target, edge.source, edge.kind, edge.branch) for edge in result.graph.edges]
+    assert keys == sorted(keys)
+    # The query layer exposes both branches with their labels.
+    payload = upstream(result.graph, "mart.target.amount", 1)
+    branches = {
+        (edge["source"], edge["branch"])
+        for edge in payload["edges"]
+        if edge["target"] == "mart.target.amount"
+    }
+    assert branches == {
+        ("raw.updates.amount", BRANCH_MERGE_UPDATE),
+        ("raw.catalog.default_amount", BRANCH_MERGE_INSERT),
+    }
+    ids = [edge["id"] for edge in payload["edges"]]
+    assert len(ids) == len(set(ids))
+
+
+def test_merge_branch_edges_survive_ledger_round_trip(project_factory):
+    p = project_factory("merge-ledger")
+    p.sql(
+        "00_schema.sql",
+        """
+        CREATE TABLE raw.changes (id INT, amount INT);
+        CREATE TABLE mart.target (id INT, amount INT);
+        """,
+    )
+    p.sql(
+        "merge.sql",
+        """
+        MERGE INTO mart.target AS t
+        USING raw.changes AS s
+        ON t.id = s.id
+        WHEN MATCHED THEN UPDATE SET t.amount = s.amount
+        WHEN NOT MATCHED THEN INSERT (id, amount) VALUES (s.id, s.amount);
+        """,
+    )
+    result, _ = p.scan_artifacts()
+    store = LedgerStore(p.out_dir / "ledger.sqlite")
+    graph = store.load_graph(result.run_id)
+    branches = {
+        (edge.source, edge.branch)
+        for edge in graph.edges
+        if edge.target == "mart.target.amount"
+    }
+    assert branches == {
+        ("raw.changes.amount", BRANCH_MERGE_UPDATE),
+        ("raw.changes.amount", BRANCH_MERGE_INSERT),
+    }
+    snapshot = store.snapshot(result.run_id)
+    exported = {
+        (edge["source"], edge["branch"])
+        for edge in snapshot["edges"]
+        if edge["target"] == "mart.target.amount"
+    }
+    assert exported == branches
 
 
 def test_insert_column_count_mismatch_is_reported(project_factory):

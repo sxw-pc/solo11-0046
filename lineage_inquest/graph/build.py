@@ -30,7 +30,7 @@ def build_graph(tables: dict[str, TableDef], mappings: list[ColumnMapping]) -> G
                 assertions=tuple(column.assertions),
             )
 
-    grouped: dict[tuple[str, str, str], set[EdgeLocation]] = {}
+    grouped: dict[tuple[str, str, str, str], set[EdgeLocation]] = {}
     for mapping in mappings:
         for source in mapping.sources:
             target = mapping.target
@@ -38,16 +38,16 @@ def build_graph(tables: dict[str, TableDef], mappings: list[ColumnMapping]) -> G
                 nodes[source] = referenced_node(source)
             if target not in nodes:
                 nodes[target] = referenced_node(target)
-            key = (source, target, mapping.kind)
+            key = (source, target, mapping.kind, mapping.branch)
             grouped.setdefault(key, set()).add(
                 EdgeLocation(mapping.script, mapping.line, mapping.statement)
             )
 
     edges = [
-        Edge(source=source, target=target, kind=kind, locations=tuple(sorted(locations)))
-        for (source, target, kind), locations in grouped.items()
+        Edge(source=source, target=target, kind=kind, locations=tuple(sorted(locations)), branch=branch)
+        for (source, target, kind, branch), locations in grouped.items()
     ]
-    edges.sort(key=lambda edge: (edge.target, edge.source, edge.kind))
+    edges.sort(key=lambda edge: (edge.target, edge.source, edge.kind, edge.branch))
     ordered_nodes = tuple(nodes[name] for name in sorted(nodes))
     return Graph(nodes=ordered_nodes, edges=tuple(edges), tables=len(tables))
 
@@ -84,10 +84,11 @@ def node_payload(node: Node) -> dict:
 def edge_payload(edge: Edge) -> dict:
     scripts = sorted({location.script for location in edge.locations})
     return {
-        "id": edge_id(edge.source, edge.target, edge.kind),
+        "id": edge_id(edge.source, edge.target, edge.kind, edge.branch),
         "source": edge.source,
         "target": edge.target,
         "kind": edge.kind,
+        "branch": edge.branch,
         "scripts": scripts,
         "locations": [
             {

@@ -149,3 +149,47 @@ def test_ledger_store_round_trip(demo_project):
     assert len(snapshot["edges"]) == len(result.graph.edges)
     graph = store.load_graph(result.run_id)
     assert [node.name for node in graph.nodes] == [node.name for node in result.graph.nodes]
+    assert [edge.branch for edge in graph.edges] == [edge.branch for edge in result.graph.edges]
+
+
+def test_pre_branch_ledger_is_migrated_on_read(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old" / "ledger.sqlite"
+    path.parent.mkdir(parents=True)
+    connection = sqlite3.connect(str(path))
+    connection.executescript(
+        """
+        CREATE TABLE run (
+          run_id TEXT PRIMARY KEY, project TEXT NOT NULL, created_at TEXT NOT NULL,
+          input_digest TEXT NOT NULL, config_digest TEXT NOT NULL,
+          tables_count INTEGER NOT NULL, nodes_count INTEGER NOT NULL, edges_count INTEGER NOT NULL,
+          findings_count INTEGER NOT NULL, unsupported_count INTEGER NOT NULL,
+          statements_count INTEGER NOT NULL, scripts_count INTEGER NOT NULL,
+          summary_json TEXT NOT NULL, severity_json TEXT NOT NULL, overrides_json TEXT NOT NULL
+        );
+        CREATE TABLE node (
+          run_id TEXT NOT NULL, name TEXT NOT NULL, table_name TEXT NOT NULL, column_name TEXT NOT NULL,
+          data_type TEXT NOT NULL, nullable INTEGER NOT NULL, primary_key INTEGER NOT NULL,
+          origin TEXT NOT NULL, assertions_json TEXT NOT NULL, PRIMARY KEY (run_id, name)
+        );
+        CREATE TABLE edge (
+          run_id TEXT NOT NULL, edge_id TEXT NOT NULL, source TEXT NOT NULL, target TEXT NOT NULL,
+          kind TEXT NOT NULL, locations_json TEXT NOT NULL, PRIMARY KEY (run_id, edge_id)
+        );
+        INSERT INTO run VALUES ('run-aaaaaaaaaaa0','p','2024-01-01T00:00:00Z','d','c',1,2,1,0,0,1,1,'{}','{}','{}');
+        INSERT INTO node VALUES ('run-aaaaaaaaaaa0','raw.s.a','raw.s','a','INT',1,0,'ddl','[]');
+        INSERT INTO node VALUES ('run-aaaaaaaaaaa0','mart.t.a','mart.t','a','INT',1,0,'ddl','[]');
+        INSERT INTO edge VALUES ('run-aaaaaaaaaaa0','e-0123456789abcdef','raw.s.a','mart.t.a','direct','[]');
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    store = LedgerStore(path)
+    graph = store.load_graph("run-aaaaaaaaaaa0")
+    assert [(edge.source, edge.target, edge.branch) for edge in graph.edges] == [
+        ("raw.s.a", "mart.t.a", "")
+    ]
+    columns = {row[1] for row in sqlite3.connect(str(path)).execute("PRAGMA table_info(edge)")}
+    assert "branch" in columns

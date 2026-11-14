@@ -17,7 +17,7 @@ def test_artifacts_are_written_and_parseable(demo_project, tmp_path):
     assert "generated_at" not in findings
     assert findings["summary"]["total"] == len(result.findings)
     assert graph["nodes"] == sorted(graph["nodes"], key=lambda item: item["name"])
-    assert graph["edges"] == sorted(graph["edges"], key=lambda item: (item["target"], item["source"], item["kind"]))
+    assert graph["edges"] == sorted(graph["edges"], key=lambda item: (item["target"], item["source"], item["kind"], item["branch"]))
 
 
 def test_html_is_self_contained_and_has_collapsible_details(project_factory):

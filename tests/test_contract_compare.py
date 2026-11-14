@@ -154,6 +154,67 @@ def test_contract_missing_target_reports_missing_upstream(project_factory):
     assert "absent from the graph" in finding.detail
 
 
+def _merge_branch_project(project_factory, required):
+    p = project_factory("merge-contract")
+    p.sql(
+        "00_schema.sql",
+        """
+        CREATE TABLE raw.updates (id INT, amount INT);
+        CREATE TABLE raw.catalog (id INT, default_amount INT);
+        CREATE TABLE mart.target (id INT, amount INT);
+        """,
+    )
+    p.sql(
+        "merge.sql",
+        """
+        MERGE INTO mart.target AS t
+        USING (
+          SELECT u.id, u.amount, c.default_amount
+          FROM raw.updates AS u
+          JOIN raw.catalog AS c ON u.id = c.id
+        ) AS s
+        ON t.id = s.id
+        WHEN MATCHED THEN UPDATE SET t.amount = s.amount
+        WHEN NOT MATCHED THEN INSERT (id, amount) VALUES (s.id, s.default_amount);
+        """,
+    )
+    listed = "\n".join(f"      - {name}" for name in required)
+    p.contract(
+        "target.yaml",
+        "version: 1\ncontracts:\n  - target: mart.target.amount\n    required_upstream:\n" + listed + "\n",
+    )
+    return p
+
+
+def test_merge_branch_source_not_in_allow_list_is_unexpected(project_factory):
+    # The contract names only the update branch's source; the insert branch's
+    # source is a real direct upstream and counts as unexpected, not ignored.
+    result = _merge_branch_project(project_factory, ["raw.updates.amount"]).scan()
+    assert not findings_for(result, "missing_upstream")
+    unexpected = findings_for(result, "unexpected_upstream")
+    assert len(unexpected) == 1
+    assert unexpected[0].target == "mart.target.amount"
+    assert "raw.catalog.default_amount" in unexpected[0].detail
+    assert "raw.updates.amount" not in unexpected[0].detail
+
+
+def test_merge_required_source_is_satisfied_by_either_branch(project_factory):
+    # Naming only the insert branch's source satisfies `required_upstream`;
+    # the update branch's source is then the unexpected one.
+    result = _merge_branch_project(project_factory, ["raw.catalog.default_amount"]).scan()
+    assert not findings_for(result, "missing_upstream")
+    unexpected = findings_for(result, "unexpected_upstream")
+    assert len(unexpected) == 1
+    assert "raw.updates.amount" in unexpected[0].detail
+
+
+def test_merge_contract_listing_both_branch_sources_is_clean(project_factory):
+    result = _merge_branch_project(
+        project_factory, ["raw.updates.amount", "raw.catalog.default_amount"]
+    ).scan()
+    assert result.findings == ()
+
+
 @pytest.mark.parametrize(
     "body,message",
     [

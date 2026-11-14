@@ -20,7 +20,7 @@ def test_nodes_and_edges_are_sorted_and_deduplicated(project_factory):
     result = p.scan()
     names = [node.name for node in result.graph.nodes]
     assert names == sorted(names)
-    keys = [(edge.target, edge.source, edge.kind) for edge in result.graph.edges]
+    keys = [(edge.target, edge.source, edge.kind, edge.branch) for edge in result.graph.edges]
     assert keys == sorted(keys)
     edge = p.edge(result, "raw.s.a", "mart.t.a", "direct")
     assert [location.script for location in edge.locations] == ["02_first.sql", "03_second.sql"]
@@ -124,3 +124,16 @@ def test_content_addressed_ids_ignore_locations_and_encode_identity():
     assert direct == edge_id("raw.s.a", "mart.t.a", "direct")
     assert direct != edge_id("raw.s.a", "mart.t.a", "expression")
     assert direct != edge_id("raw.s.b", "mart.t.a", "direct")
+
+
+def test_edge_id_stays_legacy_for_unbranched_and_splits_per_branch():
+    # Unbranched edges hash exactly the legacy {source, target, kind} payload.
+    legacy = edge_id("raw.s.a", "mart.t.a", "direct")
+    assert legacy == edge_id("raw.s.a", "mart.t.a", "direct", "")
+    # A branch tag changes the identity so MERGE branches never collapse.
+    update = edge_id("raw.s.a", "mart.t.a", "direct", "merge_update")
+    insert = edge_id("raw.s.a", "mart.t.a", "direct", "merge_insert")
+    assert update != legacy
+    assert insert != legacy
+    assert update != insert
+    assert update == edge_id("raw.s.a", "mart.t.a", "direct", "merge_update")

@@ -89,7 +89,9 @@ pytest -q
 - `CREATE TABLE ... AS SELECT`：列从 SELECT 推导，节点标记 `derived`。
 - `INSERT INTO target [(columns)] SELECT ...`。
 - `MERGE INTO target USING source ON ...`，含 `WHEN MATCHED THEN UPDATE SET`
-  和 `WHEN NOT MATCHED THEN INSERT ... VALUES`。
+  和 `WHEN NOT MATCHED THEN INSERT ... VALUES`。两个分支产出的来源边分别打上
+  `merge_update` / `merge_insert` 分支标记，即使来源列、目标列与 kind 相同
+  也不会折叠成一条边；普通 `INSERT`/`CTAS` 的边分支标记为空。
 - `DROP TABLE`：按文件名、文件内行号顺序移除后续语句可见的表。
 - `ALTER TABLE ... ADD COLUMN`：按同样顺序扩充表结构。
 - 上述产出语句中的 `SELECT`：JOIN、表别名、列别名、非递归 CTE、表达式、
@@ -153,6 +155,9 @@ contracts:
   直接来源列，或在后续迭代中扩展。
 - 任何未被 `required_upstream` 列出的实际直接来源都会产生
   `unexpected_upstream`；`forbidden_upstream` 命中会写入该 finding 的 detail。
+- 比对**不区分 MERGE 分支**：`required_upstream` 是来源列的白名单，两个分支的
+  来源都真实写入目标列，因此只列出其中一个分支的来源时，另一分支的来源计为
+  `unexpected_upstream`（不忽略）；任一分支上出现所需来源即视为满足 required。
 - target 不在图中、或必需来源缺失，产生 `missing_upstream`。
 - `expected_type` 与静态推导/DDL 类型按类型家族或精确文本比较，不符时产生
   `type_mismatch`。
@@ -182,14 +187,17 @@ contracts:
 
 `edges` 每项含：
 
-- `id`：由 source、target、kind 生成的内容哈希；
+- `id`：由 source、target、kind 生成的内容哈希；带分支标记的边会把 branch
+  一并计入哈希，无分支边的 id 与历史版本保持一致；
 - `source`、`target`；
 - `kind`：`direct`、`expression` 或 `aggregate`（常量不产生边）；
+- `branch`：来源分支标记，`""`（普通 INSERT/CTAS）、`merge_update` 或
+  `merge_insert`；
 - `scripts`：贡献该边的脚本名，升序去重；
 - `locations`：每项含 `script`、`line`、`statement`。
 
-节点按全名排序；边按 `(target, source, kind)` 排序。同一 `(source, target,
-kind)` 的重复边去重，但保留全部来源脚本和语句位置。
+节点按全名排序；边按 `(target, source, kind, branch)` 排序。同一 `(source,
+target, kind, branch)` 的重复边去重，但保留全部来源脚本和语句位置。
 
 ### `findings.json`
 
@@ -213,7 +221,8 @@ HTML 使用内联 CSS、无 JavaScript、无外链、无 CDN，可直接离线�
   各计数、`summary_json`、`severity_json`、`overrides_json`。
 - `node`：run 外键、全名、表/列名、类型、可空、主键、origin、
   `assertions_json`。
-- `edge`：run 外键、edge ID、source、target、kind、`locations_json`。
+- `edge`：run 外键、edge ID、source、target、kind、branch、`locations_json`
+  （旧台账缺少 `branch` 列时打开即自动 `ALTER TABLE` 迁移，存量边记为空分支）。
 - `finding`：run 外键、finding ID、category、severity、default_severity、
   overridden、target、message、detail、script、line。
 - `unsupported`：run 外键、seq、script、line、construct、reason、snippet。

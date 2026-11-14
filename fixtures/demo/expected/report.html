@@ -55,7 +55,7 @@
 <section id="overview"><h2>Overview</h2><div class="metrics">
 <div class="metric"><strong>7</strong><span>Tables</span></div>
 <div class="metric"><strong>30</strong><span>Nodes</span></div>
-<div class="metric"><strong>18</strong><span>Edges</span></div>
+<div class="metric"><strong>20</strong><span>Edges</span></div>
 <div class="metric"><strong>0</strong><span>Findings</span></div>
 <div class="metric"><strong>0</strong><span>Unsupported</span></div>
 <div class="metric"><strong>5</strong><span>Scripts</span></div>
@@ -80,7 +80,7 @@
 <th>Script</th><th>Statements</th><th>Supported</th><th>Unsupported</th><th>Edges</th><th>Findings</th></tr></thead><tbody>
 <tr><td><code>01_sources.sql</code></td><td>2</td><td>2</td><td>0</td><td>0</td><td>0</td></tr>
 <tr><td><code>02_marts.sql</code></td><td>4</td><td>4</td><td>0</td><td>5</td><td>0</td></tr>
-<tr><td><code>03_rollup.sql</code></td><td>3</td><td>3</td><td>0</td><td>6</td><td>0</td></tr>
+<tr><td><code>03_rollup.sql</code></td><td>3</td><td>3</td><td>0</td><td>8</td><td>0</td></tr>
 <tr><td><code>04_star.sql</code></td><td>1</td><td>1</td><td>0</td><td>7</td><td>0</td></tr>
 <tr><td><code>05_maintenance.sql</code></td><td>2</td><td>2</td><td>0</td><td>0</td><td>0</td></tr>
 </tbody></table></section>
@@ -113,18 +113,18 @@
 </section>
 <section id="topology"><h2>Topology summary</h2><table><thead><tr>
 <th>Column</th><th>Upstream edges</th><th>Downstream edges</th></tr></thead><tbody>
+<tr><td><code>mart.customer_rollup.lifetime_revenue</code></td><td>1</td><td>2</td></tr>
+<tr><td><code>mart.customer_rollup.region</code></td><td>1</td><td>2</td></tr>
 <tr><td><code>raw.orders.net_amount</code></td><td>0</td><td>3</td></tr>
+<tr><td><code>mart.customer_latest.lifetime_revenue</code></td><td>2</td><td>0</td></tr>
+<tr><td><code>mart.customer_latest.region</code></td><td>2</td><td>0</td></tr>
 <tr><td><code>mart.customer_revenue.customer_id</code></td><td>1</td><td>1</td></tr>
 <tr><td><code>mart.customer_revenue.region</code></td><td>1</td><td>1</td></tr>
 <tr><td><code>mart.customer_revenue.revenue</code></td><td>1</td><td>1</td></tr>
 <tr><td><code>mart.customer_rollup.customer_id</code></td><td>1</td><td>1</td></tr>
-<tr><td><code>mart.customer_rollup.lifetime_revenue</code></td><td>1</td><td>1</td></tr>
-<tr><td><code>mart.customer_rollup.region</code></td><td>1</td><td>1</td></tr>
 <tr><td><code>raw.orders.customer_id</code></td><td>0</td><td>2</td></tr>
 <tr><td><code>raw.orders.order_ts</code></td><td>0</td><td>2</td></tr>
 <tr><td><code>mart.customer_latest.customer_id</code></td><td>1</td><td>0</td></tr>
-<tr><td><code>mart.customer_latest.lifetime_revenue</code></td><td>1</td><td>0</td></tr>
-<tr><td><code>mart.customer_latest.region</code></td><td>1</td><td>0</td></tr>
 <tr><td><code>mart.daily_revenue.order_date</code></td><td>1</td><td>0</td></tr>
 <tr><td><code>mart.daily_revenue.revenue</code></td><td>1</td><td>0</td></tr>
 <tr><td><code>mart.orders_copy.currency</code></td><td>1</td><td>0</td></tr>

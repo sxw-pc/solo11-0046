@@ -5,6 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+# Provenance branch labels carried by ColumnMapping/Edge. Statements that are
+# not multi-branch (INSERT ... SELECT, CTAS) leave the branch empty; MERGE
+# tags each WHEN clause so the update and insert paths into the same target
+# column stay distinguishable downstream.
+BRANCH_NONE = ""
+BRANCH_MERGE_UPDATE = "merge_update"
+BRANCH_MERGE_INSERT = "merge_insert"
+
 
 @dataclass(frozen=True)
 class SqlUnit:
@@ -48,6 +56,7 @@ class ColumnMapping:
     script: str
     line: int
     statement: int
+    branch: str = BRANCH_NONE
 
 
 @dataclass(frozen=True)
@@ -83,6 +92,7 @@ class Edge:
     target: str
     kind: str
     locations: tuple[EdgeLocation, ...]
+    branch: str = BRANCH_NONE
 
 
 @dataclass(frozen=True)

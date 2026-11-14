@@ -10,7 +10,7 @@
 
 | Tables | Nodes | Edges | Findings | Unsupported | Scripts | Statements |
 |---:|---:|---:|---:|---:|---:|---:|
-| 7 | 30 | 18 | 0 | 0 | 5 | 12 |
+| 7 | 30 | 20 | 0 | 0 | 5 | 12 |
 
 By severity: none
 
@@ -36,7 +36,7 @@ No findings.
 |---|---:|---:|---:|---:|---:|
 | `01_sources.sql` | 2 | 2 | 0 | 0 | 0 |
 | `02_marts.sql` | 4 | 4 | 0 | 5 | 0 |
-| `03_rollup.sql` | 3 | 3 | 0 | 6 | 0 |
+| `03_rollup.sql` | 3 | 3 | 0 | 8 | 0 |
 | `04_star.sql` | 1 | 1 | 0 | 7 | 0 |
 | `05_maintenance.sql` | 2 | 2 | 0 | 0 | 0 |
 
@@ -77,13 +77,13 @@ None.
 
 | Column | Upstream edges | Downstream edges |
 |---|---:|---:|
+| `mart.customer_rollup.lifetime_revenue` | 1 | 2 |
+| `mart.customer_rollup.region` | 1 | 2 |
 | `raw.orders.net_amount` | 0 | 3 |
+| `mart.customer_latest.lifetime_revenue` | 2 | 0 |
+| `mart.customer_latest.region` | 2 | 0 |
 | `mart.customer_revenue.customer_id` | 1 | 1 |
 | `mart.customer_revenue.region` | 1 | 1 |
 | `mart.customer_revenue.revenue` | 1 | 1 |
 | `mart.customer_rollup.customer_id` | 1 | 1 |
-| `mart.customer_rollup.lifetime_revenue` | 1 | 1 |
-| `mart.customer_rollup.region` | 1 | 1 |
 | `raw.orders.customer_id` | 0 | 2 |
-| `raw.orders.order_ts` | 0 | 2 |
-| `mart.customer_latest.customer_id` | 1 | 0 |

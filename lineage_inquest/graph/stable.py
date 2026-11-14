@@ -16,10 +16,14 @@ def node_id(name: str) -> str:
     return "n-" + content_hash({"name": name})[:16]
 
 
-def edge_id(source: str, target: str, kind: str) -> str:
-    return "e-" + content_hash(
-        {"source": source, "target": target, "kind": kind}
-    )[:16]
+def edge_id(source: str, target: str, kind: str, branch: str = "") -> str:
+    # Unbranched edges hash exactly the legacy {source, target, kind} payload so
+    # pre-existing edge ids stay stable; only branch-tagged edges (MERGE WHEN
+    # clauses) mix the branch into the identity.
+    payload: dict[str, str] = {"source": source, "target": target, "kind": kind}
+    if branch:
+        payload["branch"] = branch
+    return "e-" + content_hash(payload)[:16]
 
 
 def finding_id(category: str, target: str, detail: str = "") -> str:

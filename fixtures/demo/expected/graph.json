@@ -1,58 +1,719 @@
 {
   "edges": [
-    {"id":"e-507d62dccffcf1ee","kind":"direct","locations":[{"line":14,"script":"03_rollup.sql","statement":3}],"scripts":["03_rollup.sql"],"source":"mart.customer_rollup.customer_id","target":"mart.customer_latest.customer_id"},
-    {"id":"e-3db3a3aa59fbf907","kind":"direct","locations":[{"line":14,"script":"03_rollup.sql","statement":3}],"scripts":["03_rollup.sql"],"source":"mart.customer_rollup.lifetime_revenue","target":"mart.customer_latest.lifetime_revenue"},
-    {"id":"e-65e7e57f76cf5c0f","kind":"direct","locations":[{"line":14,"script":"03_rollup.sql","statement":3}],"scripts":["03_rollup.sql"],"source":"mart.customer_rollup.region","target":"mart.customer_latest.region"},
-    {"id":"e-09466cadb634665c","kind":"direct","locations":[{"line":20,"script":"02_marts.sql","statement":4}],"scripts":["02_marts.sql"],"source":"raw.orders.customer_id","target":"mart.customer_revenue.customer_id"},
-    {"id":"e-4f8a3e4e78754e4e","kind":"direct","locations":[{"line":20,"script":"02_marts.sql","statement":4}],"scripts":["02_marts.sql"],"source":"raw.customers.region","target":"mart.customer_revenue.region"},
-    {"id":"e-82c6eb17da8c6a10","kind":"aggregate","locations":[{"line":20,"script":"02_marts.sql","statement":4}],"scripts":["02_marts.sql"],"source":"raw.orders.net_amount","target":"mart.customer_revenue.revenue"},
-    {"id":"e-2d75e5f52948a6e2","kind":"direct","locations":[{"line":1,"script":"03_rollup.sql","statement":1}],"scripts":["03_rollup.sql"],"source":"mart.customer_revenue.customer_id","target":"mart.customer_rollup.customer_id"},
-    {"id":"e-c8cbefcf3c1a4a5c","kind":"aggregate","locations":[{"line":1,"script":"03_rollup.sql","statement":1}],"scripts":["03_rollup.sql"],"source":"mart.customer_revenue.revenue","target":"mart.customer_rollup.lifetime_revenue"},
-    {"id":"e-a120cdad7331ff6e","kind":"direct","locations":[{"line":1,"script":"03_rollup.sql","statement":1}],"scripts":["03_rollup.sql"],"source":"mart.customer_revenue.region","target":"mart.customer_rollup.region"},
-    {"id":"e-4812368d4817f0d3","kind":"expression","locations":[{"line":7,"script":"02_marts.sql","statement":2}],"scripts":["02_marts.sql"],"source":"raw.orders.order_ts","target":"mart.daily_revenue.order_date"},
-    {"id":"e-77e8049b2b8eb6e7","kind":"aggregate","locations":[{"line":7,"script":"02_marts.sql","statement":2}],"scripts":["02_marts.sql"],"source":"raw.orders.net_amount","target":"mart.daily_revenue.revenue"},
-    {"id":"e-22e39cea9e6e2d5c","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.currency","target":"mart.orders_copy.currency"},
-    {"id":"e-06a62585fdd1207f","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.customer_id","target":"mart.orders_copy.customer_id"},
-    {"id":"e-88086348cab71084","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.gross_amount","target":"mart.orders_copy.gross_amount"},
-    {"id":"e-4b24723f55370d45","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.net_amount","target":"mart.orders_copy.net_amount"},
-    {"id":"e-c21cb7d9e901f6eb","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.note","target":"mart.orders_copy.note"},
-    {"id":"e-45e4d25126e96af1","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.order_id","target":"mart.orders_copy.order_id"},
-    {"id":"e-8f237168465bc4b6","kind":"direct","locations":[{"line":1,"script":"04_star.sql","statement":1}],"scripts":["04_star.sql"],"source":"raw.orders.order_ts","target":"mart.orders_copy.order_ts"}
+    {
+      "branch": "merge_insert",
+      "id": "e-58b1088a57eb13bb",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 14,
+          "script": "03_rollup.sql",
+          "statement": 3
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_rollup.customer_id",
+      "target": "mart.customer_latest.customer_id"
+    },
+    {
+      "branch": "merge_insert",
+      "id": "e-6c946bb68e0ec832",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 14,
+          "script": "03_rollup.sql",
+          "statement": 3
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_rollup.lifetime_revenue",
+      "target": "mart.customer_latest.lifetime_revenue"
+    },
+    {
+      "branch": "merge_update",
+      "id": "e-0104e20dbe3dcef3",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 14,
+          "script": "03_rollup.sql",
+          "statement": 3
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_rollup.lifetime_revenue",
+      "target": "mart.customer_latest.lifetime_revenue"
+    },
+    {
+      "branch": "merge_insert",
+      "id": "e-8ec8bf17a64a29ef",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 14,
+          "script": "03_rollup.sql",
+          "statement": 3
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_rollup.region",
+      "target": "mart.customer_latest.region"
+    },
+    {
+      "branch": "merge_update",
+      "id": "e-6087fca41345504e",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 14,
+          "script": "03_rollup.sql",
+          "statement": 3
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_rollup.region",
+      "target": "mart.customer_latest.region"
+    },
+    {
+      "branch": "",
+      "id": "e-09466cadb634665c",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 20,
+          "script": "02_marts.sql",
+          "statement": 4
+        }
+      ],
+      "scripts": [
+        "02_marts.sql"
+      ],
+      "source": "raw.orders.customer_id",
+      "target": "mart.customer_revenue.customer_id"
+    },
+    {
+      "branch": "",
+      "id": "e-4f8a3e4e78754e4e",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 20,
+          "script": "02_marts.sql",
+          "statement": 4
+        }
+      ],
+      "scripts": [
+        "02_marts.sql"
+      ],
+      "source": "raw.customers.region",
+      "target": "mart.customer_revenue.region"
+    },
+    {
+      "branch": "",
+      "id": "e-82c6eb17da8c6a10",
+      "kind": "aggregate",
+      "locations": [
+        {
+          "line": 20,
+          "script": "02_marts.sql",
+          "statement": 4
+        }
+      ],
+      "scripts": [
+        "02_marts.sql"
+      ],
+      "source": "raw.orders.net_amount",
+      "target": "mart.customer_revenue.revenue"
+    },
+    {
+      "branch": "",
+      "id": "e-2d75e5f52948a6e2",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "03_rollup.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_revenue.customer_id",
+      "target": "mart.customer_rollup.customer_id"
+    },
+    {
+      "branch": "",
+      "id": "e-c8cbefcf3c1a4a5c",
+      "kind": "aggregate",
+      "locations": [
+        {
+          "line": 1,
+          "script": "03_rollup.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_revenue.revenue",
+      "target": "mart.customer_rollup.lifetime_revenue"
+    },
+    {
+      "branch": "",
+      "id": "e-a120cdad7331ff6e",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "03_rollup.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "03_rollup.sql"
+      ],
+      "source": "mart.customer_revenue.region",
+      "target": "mart.customer_rollup.region"
+    },
+    {
+      "branch": "",
+      "id": "e-4812368d4817f0d3",
+      "kind": "expression",
+      "locations": [
+        {
+          "line": 7,
+          "script": "02_marts.sql",
+          "statement": 2
+        }
+      ],
+      "scripts": [
+        "02_marts.sql"
+      ],
+      "source": "raw.orders.order_ts",
+      "target": "mart.daily_revenue.order_date"
+    },
+    {
+      "branch": "",
+      "id": "e-77e8049b2b8eb6e7",
+      "kind": "aggregate",
+      "locations": [
+        {
+          "line": 7,
+          "script": "02_marts.sql",
+          "statement": 2
+        }
+      ],
+      "scripts": [
+        "02_marts.sql"
+      ],
+      "source": "raw.orders.net_amount",
+      "target": "mart.daily_revenue.revenue"
+    },
+    {
+      "branch": "",
+      "id": "e-22e39cea9e6e2d5c",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.currency",
+      "target": "mart.orders_copy.currency"
+    },
+    {
+      "branch": "",
+      "id": "e-06a62585fdd1207f",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.customer_id",
+      "target": "mart.orders_copy.customer_id"
+    },
+    {
+      "branch": "",
+      "id": "e-88086348cab71084",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.gross_amount",
+      "target": "mart.orders_copy.gross_amount"
+    },
+    {
+      "branch": "",
+      "id": "e-4b24723f55370d45",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.net_amount",
+      "target": "mart.orders_copy.net_amount"
+    },
+    {
+      "branch": "",
+      "id": "e-c21cb7d9e901f6eb",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.note",
+      "target": "mart.orders_copy.note"
+    },
+    {
+      "branch": "",
+      "id": "e-45e4d25126e96af1",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.order_id",
+      "target": "mart.orders_copy.order_id"
+    },
+    {
+      "branch": "",
+      "id": "e-8f237168465bc4b6",
+      "kind": "direct",
+      "locations": [
+        {
+          "line": 1,
+          "script": "04_star.sql",
+          "statement": 1
+        }
+      ],
+      "scripts": [
+        "04_star.sql"
+      ],
+      "source": "raw.orders.order_ts",
+      "target": "mart.orders_copy.order_ts"
+    }
   ],
   "input_digest": "4fc04d8bb371d181a1e9785d4b7b8a4c9d5e7e3251b04c2c001c4bb5b673c550",
   "nodes": [
-    {"assertions":["not_null","unique"],"column":"customer_id","data_type":"BIGINT","id":"n-5675cec9ab9581d9","name":"mart.customer_latest.customer_id","nullable":false,"origin":"ddl","primary_key":true,"table":"mart.customer_latest"},
-    {"assertions":[],"column":"lifetime_revenue","data_type":"DECIMAL(18,2)","id":"n-0ec9a07d6e9ece0e","name":"mart.customer_latest.lifetime_revenue","nullable":true,"origin":"ddl","primary_key":false,"table":"mart.customer_latest"},
-    {"assertions":["not_null"],"column":"region","data_type":"VARCHAR(16)","id":"n-60e9669b2f7d909e","name":"mart.customer_latest.region","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.customer_latest"},
-    {"assertions":["not_null"],"column":"customer_id","data_type":"BIGINT","id":"n-6a87b37c7384b048","name":"mart.customer_revenue.customer_id","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.customer_revenue"},
-    {"assertions":["not_null"],"column":"region","data_type":"VARCHAR(16)","id":"n-615410a8e2ffbcbc","name":"mart.customer_revenue.region","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.customer_revenue"},
-    {"assertions":["not_null"],"column":"revenue","data_type":"DECIMAL(18,2)","id":"n-36f20c025281aeb0","name":"mart.customer_revenue.revenue","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.customer_revenue"},
-    {"assertions":[],"column":"customer_id","data_type":"BIGINT","id":"n-c4c41e50bd0bad07","name":"mart.customer_rollup.customer_id","nullable":true,"origin":"derived","primary_key":false,"table":"mart.customer_rollup"},
-    {"assertions":[],"column":"lifetime_revenue","data_type":"DECIMAL","id":"n-c467fb0c9ef985eb","name":"mart.customer_rollup.lifetime_revenue","nullable":true,"origin":"derived","primary_key":false,"table":"mart.customer_rollup"},
-    {"assertions":[],"column":"region","data_type":"VARCHAR(16)","id":"n-6962701252273c4b","name":"mart.customer_rollup.region","nullable":true,"origin":"derived","primary_key":false,"table":"mart.customer_rollup"},
-    {"assertions":["not_null"],"column":"order_count","data_type":"BIGINT","id":"n-606f2c1e369494a7","name":"mart.daily_revenue.order_count","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.daily_revenue"},
-    {"assertions":["not_null"],"column":"order_date","data_type":"DATE","id":"n-c2a8e274266c1cf4","name":"mart.daily_revenue.order_date","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.daily_revenue"},
-    {"assertions":["not_null"],"column":"revenue","data_type":"DECIMAL(18,2)","id":"n-9cb24192462106f8","name":"mart.daily_revenue.revenue","nullable":false,"origin":"ddl","primary_key":false,"table":"mart.daily_revenue"},
-    {"assertions":[],"column":"currency","data_type":"VARCHAR(3)","id":"n-b8adda926918c339","name":"mart.orders_copy.currency","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":[],"column":"customer_id","data_type":"BIGINT","id":"n-4ef4d5515e8b8682","name":"mart.orders_copy.customer_id","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":[],"column":"gross_amount","data_type":"DECIMAL(12,2)","id":"n-721b2844a2ac3cbb","name":"mart.orders_copy.gross_amount","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":[],"column":"net_amount","data_type":"DECIMAL(12,2)","id":"n-576f46001eea026b","name":"mart.orders_copy.net_amount","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":[],"column":"note","data_type":"VARCHAR(80)","id":"n-02efe2f0121e37c5","name":"mart.orders_copy.note","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":[],"column":"order_id","data_type":"BIGINT","id":"n-126d6f9767880d2b","name":"mart.orders_copy.order_id","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":[],"column":"order_ts","data_type":"TIMESTAMP","id":"n-b22d01a9b9dfa161","name":"mart.orders_copy.order_ts","nullable":true,"origin":"derived","primary_key":false,"table":"mart.orders_copy"},
-    {"assertions":["not_null","unique"],"column":"customer_id","data_type":"BIGINT","id":"n-a1331c008370c237","name":"raw.customers.customer_id","nullable":false,"origin":"ddl","primary_key":true,"table":"raw.customers"},
-    {"assertions":["not_null"],"column":"region","data_type":"VARCHAR(16)","id":"n-e8d7b22851564e54","name":"raw.customers.region","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.customers"},
-    {"assertions":[],"column":"segment","data_type":"VARCHAR(24)","id":"n-f9a015cbb7fa3ee4","name":"raw.customers.segment","nullable":true,"origin":"ddl","primary_key":false,"table":"raw.customers"},
-    {"assertions":[],"column":"channel","data_type":"VARCHAR(16)","id":"n-de4640315c2a1f04","name":"raw.orders.channel","nullable":true,"origin":"ddl","primary_key":false,"table":"raw.orders"},
-    {"assertions":["not_null"],"column":"currency","data_type":"VARCHAR(3)","id":"n-384b51f426e6c759","name":"raw.orders.currency","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"},
-    {"assertions":["not_null"],"column":"customer_id","data_type":"BIGINT","id":"n-678a658cf3830f06","name":"raw.orders.customer_id","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"},
-    {"assertions":["not_null"],"column":"gross_amount","data_type":"DECIMAL(12,2)","id":"n-0de556f117088d8e","name":"raw.orders.gross_amount","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"},
-    {"assertions":["not_null"],"column":"net_amount","data_type":"DECIMAL(12,2)","id":"n-0c5758dba664145a","name":"raw.orders.net_amount","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"},
-    {"assertions":[],"column":"note","data_type":"VARCHAR(80)","id":"n-00295cc41aaf59c5","name":"raw.orders.note","nullable":true,"origin":"ddl","primary_key":false,"table":"raw.orders"},
-    {"assertions":["not_null","unique"],"column":"order_id","data_type":"BIGINT","id":"n-99a9eccc10d96ebb","name":"raw.orders.order_id","nullable":false,"origin":"ddl","primary_key":true,"table":"raw.orders"},
-    {"assertions":["not_null"],"column":"order_ts","data_type":"TIMESTAMP","id":"n-5b3bdd5599dae9e1","name":"raw.orders.order_ts","nullable":false,"origin":"ddl","primary_key":false,"table":"raw.orders"}
+    {
+      "assertions": [
+        "not_null",
+        "unique"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-5675cec9ab9581d9",
+      "name": "mart.customer_latest.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": true,
+      "table": "mart.customer_latest"
+    },
+    {
+      "assertions": [],
+      "column": "lifetime_revenue",
+      "data_type": "DECIMAL(18,2)",
+      "id": "n-0ec9a07d6e9ece0e",
+      "name": "mart.customer_latest.lifetime_revenue",
+      "nullable": true,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_latest"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "region",
+      "data_type": "VARCHAR(16)",
+      "id": "n-60e9669b2f7d909e",
+      "name": "mart.customer_latest.region",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_latest"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-6a87b37c7384b048",
+      "name": "mart.customer_revenue.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_revenue"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "region",
+      "data_type": "VARCHAR(16)",
+      "id": "n-615410a8e2ffbcbc",
+      "name": "mart.customer_revenue.region",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_revenue"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "revenue",
+      "data_type": "DECIMAL(18,2)",
+      "id": "n-36f20c025281aeb0",
+      "name": "mart.customer_revenue.revenue",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.customer_revenue"
+    },
+    {
+      "assertions": [],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-c4c41e50bd0bad07",
+      "name": "mart.customer_rollup.customer_id",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.customer_rollup"
+    },
+    {
+      "assertions": [],
+      "column": "lifetime_revenue",
+      "data_type": "DECIMAL",
+      "id": "n-c467fb0c9ef985eb",
+      "name": "mart.customer_rollup.lifetime_revenue",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.customer_rollup"
+    },
+    {
+      "assertions": [],
+      "column": "region",
+      "data_type": "VARCHAR(16)",
+      "id": "n-6962701252273c4b",
+      "name": "mart.customer_rollup.region",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.customer_rollup"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "order_count",
+      "data_type": "BIGINT",
+      "id": "n-606f2c1e369494a7",
+      "name": "mart.daily_revenue.order_count",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.daily_revenue"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "order_date",
+      "data_type": "DATE",
+      "id": "n-c2a8e274266c1cf4",
+      "name": "mart.daily_revenue.order_date",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.daily_revenue"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "revenue",
+      "data_type": "DECIMAL(18,2)",
+      "id": "n-9cb24192462106f8",
+      "name": "mart.daily_revenue.revenue",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "mart.daily_revenue"
+    },
+    {
+      "assertions": [],
+      "column": "currency",
+      "data_type": "VARCHAR(3)",
+      "id": "n-b8adda926918c339",
+      "name": "mart.orders_copy.currency",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-4ef4d5515e8b8682",
+      "name": "mart.orders_copy.customer_id",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [],
+      "column": "gross_amount",
+      "data_type": "DECIMAL(12,2)",
+      "id": "n-721b2844a2ac3cbb",
+      "name": "mart.orders_copy.gross_amount",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [],
+      "column": "net_amount",
+      "data_type": "DECIMAL(12,2)",
+      "id": "n-576f46001eea026b",
+      "name": "mart.orders_copy.net_amount",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [],
+      "column": "note",
+      "data_type": "VARCHAR(80)",
+      "id": "n-02efe2f0121e37c5",
+      "name": "mart.orders_copy.note",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [],
+      "column": "order_id",
+      "data_type": "BIGINT",
+      "id": "n-126d6f9767880d2b",
+      "name": "mart.orders_copy.order_id",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [],
+      "column": "order_ts",
+      "data_type": "TIMESTAMP",
+      "id": "n-b22d01a9b9dfa161",
+      "name": "mart.orders_copy.order_ts",
+      "nullable": true,
+      "origin": "derived",
+      "primary_key": false,
+      "table": "mart.orders_copy"
+    },
+    {
+      "assertions": [
+        "not_null",
+        "unique"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-a1331c008370c237",
+      "name": "raw.customers.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": true,
+      "table": "raw.customers"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "region",
+      "data_type": "VARCHAR(16)",
+      "id": "n-e8d7b22851564e54",
+      "name": "raw.customers.region",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.customers"
+    },
+    {
+      "assertions": [],
+      "column": "segment",
+      "data_type": "VARCHAR(24)",
+      "id": "n-f9a015cbb7fa3ee4",
+      "name": "raw.customers.segment",
+      "nullable": true,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.customers"
+    },
+    {
+      "assertions": [],
+      "column": "channel",
+      "data_type": "VARCHAR(16)",
+      "id": "n-de4640315c2a1f04",
+      "name": "raw.orders.channel",
+      "nullable": true,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "currency",
+      "data_type": "VARCHAR(3)",
+      "id": "n-384b51f426e6c759",
+      "name": "raw.orders.currency",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "customer_id",
+      "data_type": "BIGINT",
+      "id": "n-678a658cf3830f06",
+      "name": "raw.orders.customer_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "gross_amount",
+      "data_type": "DECIMAL(12,2)",
+      "id": "n-0de556f117088d8e",
+      "name": "raw.orders.gross_amount",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "net_amount",
+      "data_type": "DECIMAL(12,2)",
+      "id": "n-0c5758dba664145a",
+      "name": "raw.orders.net_amount",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [],
+      "column": "note",
+      "data_type": "VARCHAR(80)",
+      "id": "n-00295cc41aaf59c5",
+      "name": "raw.orders.note",
+      "nullable": true,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null",
+        "unique"
+      ],
+      "column": "order_id",
+      "data_type": "BIGINT",
+      "id": "n-99a9eccc10d96ebb",
+      "name": "raw.orders.order_id",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": true,
+      "table": "raw.orders"
+    },
+    {
+      "assertions": [
+        "not_null"
+      ],
+      "column": "order_ts",
+      "data_type": "TIMESTAMP",
+      "id": "n-5b3bdd5599dae9e1",
+      "name": "raw.orders.order_ts",
+      "nullable": false,
+      "origin": "ddl",
+      "primary_key": false,
+      "table": "raw.orders"
+    }
   ],
   "project": "line-hello-demo",
-  "stats": {"edges":18,"nodes":30,"tables":7},
+  "stats": {
+    "edges": 20,
+    "nodes": 30,
+    "tables": 7
+  },
   "version": 1
 }

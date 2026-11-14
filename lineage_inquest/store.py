@@ -15,6 +15,7 @@ from .store_schema import (
     dumps,
     edge_from_row,
     edge_payload,
+    ensure_edge_branch_column,
     finding_payload,
     node_payload,
     run_payload,
@@ -34,6 +35,9 @@ class LedgerStore:
     def _open(self):
         connection = self._connect()
         try:
+            # Ledgers written before edges carried a branch are migrated on
+            # first access so read-only paths (query/serve/export) keep working.
+            ensure_edge_branch_column(connection)
             yield connection
         finally:
             connection.close()
@@ -96,7 +100,10 @@ class LedgerStore:
                 ],
             )
             connection.executemany(
-                "INSERT INTO edge VALUES (?, ?, ?, ?, ?, ?)",
+                """
+                INSERT INTO edge (run_id, edge_id, source, target, kind, branch, locations_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
                 [
                     (
                         result.run_id,
@@ -104,6 +111,7 @@ class LedgerStore:
                         edge.source,
                         edge.target,
                         edge.kind,
+                        edge.branch,
                         dumps(
                             [
                                 {"script": loc.script, "line": loc.line, "statement": loc.statement}
@@ -210,7 +218,7 @@ class LedgerStore:
                 "SELECT * FROM node WHERE run_id = ? ORDER BY name", (run_id,)
             ).fetchall()
             edge_rows = connection.execute(
-                "SELECT * FROM edge WHERE run_id = ? ORDER BY target, source, kind", (run_id,)
+                "SELECT * FROM edge WHERE run_id = ? ORDER BY target, source, kind, branch", (run_id,)
             ).fetchall()
         nodes = tuple(
             Node(
@@ -288,4 +296,4 @@ class LedgerStore:
 
 
 def _edge_key(edge: Edge):
-    return edge_id(edge.source, edge.target, edge.kind)
+    return edge_id(edge.source, edge.target, edge.kind, edge.branch)

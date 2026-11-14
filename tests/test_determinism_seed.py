@@ -42,7 +42,10 @@ def test_seeded_demo_scans_cleanly(tmp_path):
     assert first.unsupported == ()
     assert first.run_id == second.run_id
     assert first.summary["counts"]["nodes"] == 30
-    assert first.summary["counts"]["edges"] == 18
+    # The demo MERGE writes three columns; region and lifetime_revenue are
+    # written by both WHEN branches, so each splits into two branch-tagged
+    # edges (18 collapsed -> 20 branch-aware).
+    assert first.summary["counts"]["edges"] == 20
 
 
 def test_graph_and_findings_are_byte_stable_without_timestamps(project_factory, tmp_path):

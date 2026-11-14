@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS edge (
   source TEXT NOT NULL,
   target TEXT NOT NULL,
   kind TEXT NOT NULL,
+  branch TEXT NOT NULL DEFAULT '',
   locations_json TEXT NOT NULL,
   PRIMARY KEY (run_id, edge_id)
 );
@@ -79,12 +80,21 @@ def dumps(value) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def ensure_edge_branch_column(connection: sqlite3.Connection) -> None:
+    """Add the branch column to ledgers written before branches existed."""
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(edge)")}
+    if columns and "branch" not in columns:
+        connection.execute("ALTER TABLE edge ADD COLUMN branch TEXT NOT NULL DEFAULT ''")
+    connection.commit()
+
+
 def edge_from_row(row: sqlite3.Row) -> Edge:
     locations = tuple(
         EdgeLocation(item["script"], item["line"], item["statement"])
         for item in json.loads(row["locations_json"])
     )
-    return Edge(row["source"], row["target"], row["kind"], locations)
+    branch = row["branch"] if "branch" in row.keys() else ""
+    return Edge(row["source"], row["target"], row["kind"], locations, branch)
 
 
 def run_payload(row: sqlite3.Row) -> dict:
@@ -144,10 +154,11 @@ def edge_payload(edge: Edge) -> dict:
     from .graph.stable import edge_id
 
     return {
-        "id": edge_id(edge.source, edge.target, edge.kind),
+        "id": edge_id(edge.source, edge.target, edge.kind, edge.branch),
         "source": edge.source,
         "target": edge.target,
         "kind": edge.kind,
+        "branch": edge.branch,
         "scripts": sorted({loc.script for loc in edge.locations}),
         "locations": [
             {"script": loc.script, "line": loc.line, "statement": loc.statement}

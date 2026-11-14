@@ -16,7 +16,7 @@ def _adjacency(graph: Graph, direction: str) -> dict[str, list[Edge]]:
         origin = edge.target if direction == "upstream" else edge.source
         result.setdefault(origin, []).append(edge)
     for edges in result.values():
-        edges.sort(key=lambda item: (item.target, item.source, item.kind))
+        edges.sort(key=lambda item: (item.target, item.source, item.kind, item.branch))
     return result
 
 
@@ -49,7 +49,7 @@ def _traverse(graph: Graph, node: str, direction: str, depth: int) -> dict:
             continue
         for edge in neighbors:
             other = edge.source if direction == "upstream" else edge.target
-            identifier = edge_id(edge.source, edge.target, edge.kind)
+            identifier = edge_id(edge.source, edge.target, edge.kind, edge.branch)
             if identifier not in edge_ids:
                 edge_ids.add(identifier)
                 edges.append(edge)
@@ -67,7 +67,7 @@ def _traverse(graph: Graph, node: str, direction: str, depth: int) -> dict:
         "depth": depth,
         "truncated": truncated,
         "nodes": nodes,
-        "edges": [edge_payload(edge) for edge in sorted(edges, key=lambda e: (e.target, e.source, e.kind))],
+        "edges": [edge_payload(edge) for edge in sorted(edges, key=lambda e: (e.target, e.source, e.kind, e.branch))],
     }
 
 

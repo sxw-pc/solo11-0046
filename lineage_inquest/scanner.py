@@ -201,7 +201,7 @@ def _summary(graph, statements, unsupported, findings) -> dict:
     for script in file_names:
         own_statements = [item for item in statements if item.script == script]
         own_edges = {
-            edge.source + "->" + edge.target + ":" + edge.kind
+            edge.source + "->" + edge.target + ":" + edge.kind + ":" + edge.branch
             for edge in graph.edges
             if any(location.script == script for location in edge.locations)
         }

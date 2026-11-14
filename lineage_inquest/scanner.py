@@ -6,13 +6,11 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlglot import exp
-
 from .config import Config, parse_frozen_time
 from .contract.classify import FindingDraft, classify
 from .contract.compare import compare_contracts
 from .contract.loader import load_contracts
-from .dialect import statement_kind
+from .dialect import DDL_TYPES, PRODUCE_TYPES, STATEMENT_TYPES, statement_kind
 from .errors import ConfigError
 from .graph.build import build_graph
 from .graph.query import detect_cycles
@@ -93,15 +91,18 @@ def scan(config: Config, frozen_time: str | None = None) -> ScanResult:
                     StatementInfo(relative, unit.line, unit.index, kind, "unsupported", issues[0].construct)
                 )
                 continue
-            if isinstance(ast, (exp.Create, exp.Drop, exp.Alter)):
+            if isinstance(ast, DDL_TYPES):
                 outcome = handle_ddl(unit, ast, schema, known, config.default_schema)
-            elif isinstance(ast, (exp.Insert, exp.Merge)):
+            elif isinstance(ast, PRODUCE_TYPES):
                 outcome = handle_produce(unit, ast, schema, config.default_schema)
-            elif isinstance(ast, exp.Select):
-                outcome = None
             else:
+                # Supported non-DDL/DML roots (today only SELECT) carry no
+                # mappings. Everything else is outside the allow chain and must
+                # be reported instead of silently passing through. ``ast`` is
+                # never None here: guard_ast already claimed parse failures.
                 outcome = None
-                unsupported.append(_unsupported(unit, "unsupported_statement", "statement type is not supported"))
+                if ast is not None and not isinstance(ast, STATEMENT_TYPES):
+                    unsupported.append(_unsupported(unit, "unsupported_statement", "statement type is not supported"))
             if outcome is not None:
                 mappings.extend(outcome.mappings)
                 unsupported.extend(outcome.issues)

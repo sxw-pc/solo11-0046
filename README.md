@@ -31,7 +31,7 @@ JSON / Markdown / 自包含 HTML 报告及 SQLite 台账。
 ## 2. 快速上手
 
 依赖：Python 3.10+；直接依赖已锁定为
-`sqlglot==30.18.0`、`PyYAML==6.0.2`、`Flask==3.0.3`、`pytest==8.3.5`
+`sqlglot==30.31.0`、`PyYAML==6.0.2`、`Flask==3.0.3`、`pytest==8.3.5`
 （见 `requirements.txt`）。开发与验证环境为 Python 3.13.15。
 
 ### 离线安装
